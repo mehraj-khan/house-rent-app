@@ -1,13 +1,12 @@
 /* eslint-disable */
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Users, Sparkles } from 'lucide-react';
+import { MapPin, Bed, Bath, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const HouseCard = ({ house }) => {
   const { lang } = useAuth();
   const navigate = useNavigate();
 
-  // قیمت کا انتخاب
   const displayPrice = house.pricePerDay > 0
     ? `PKR ${house.pricePerDay.toLocaleString()} / night`
     : `PKR ${house.rentPrice?.toLocaleString()} / month`;
@@ -33,12 +32,11 @@ const HouseCard = ({ house }) => {
           </span>
         )}
 
-        {/* بک شدہ بیج */}
-        {!house.isAvailable && (
-          <span style={{ position: 'absolute', top: '10px', right: '10px', background: '#eab308', color: '#000', fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '12px' }}>
-            🔒 Reserved
-          </span>
-        )}
+        {/* 🌟 لائیو اسٹار ریٹنگ بیج */}
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(15, 23, 42, 0.85)', color: 'white', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', backdropFilter: 'blur(4px)' }}>
+          <Star size={13} fill="#eab308" color="#eab308" />
+          {house.averageRating > 0 ? `${house.averageRating} (${house.totalReviews})` : 'New'}
+        </div>
       </div>
 
       <div className="house-info">
