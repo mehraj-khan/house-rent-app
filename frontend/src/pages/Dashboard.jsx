@@ -18,11 +18,11 @@ const Dashboard = () => {
     if (!currentUserId) return;
     try {
       const endpoint = isLandlord
-        ? `http://localhost:5000/api/bookings/landlord/${currentUserId}`
-        : `http://localhost:5000/api/bookings/tenant/${currentUserId}`;
+        ? `https://house-rent-app-ten.vercel.app/api/bookings/landlord/${currentUserId}`
+        : `https://house-rent-app-ten.vercel.app/api/bookings/tenant/${currentUserId}`;
 
       const [housesRes, bookingsRes] = await Promise.all([
-        isLandlord ? axios.get(`http://localhost:5000/api/houses/owner/${currentUserId}`) : Promise.resolve({ data: [] }),
+        isLandlord ? axios.get(`https://house-rent-app-ten.vercel.app/api/houses/owner/${currentUserId}`) : Promise.resolve({ data: [] }),
         axios.get(endpoint)
       ]);
 
@@ -40,7 +40,7 @@ const Dashboard = () => {
   const handleDelete = async (houseId) => {
     if (!window.confirm(lang === 'en' ? 'Delete this property?' : 'کیا آپ واقعی یہ گھر ڈیلیٹ کرنا چاہتے ہیں؟')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/houses/${houseId}`, { data: { userId: currentUserId } });
+      await axios.delete(`https://house-rent-app-ten.vercel.app/api/houses/${houseId}`, { data: { userId: currentUserId } });
       alert(lang === 'en' ? 'Property deleted!' : 'گھر ڈیلیٹ ہو گیا!');
       fetchDashboardData();
     } catch (err) {
@@ -51,7 +51,7 @@ const Dashboard = () => {
   // امانت اسٹیٹس ایکشنز
   const handleBookingAction = async (bookingId, newStatus, alertMsg) => {
     try {
-      await axios.put(`http://localhost:5000/api/bookings/${bookingId}/status`, { status: newStatus });
+      await axios.put(`https://house-rent-app-ten.vercel.app/api/bookings/${bookingId}/status`, { status: newStatus });
       alert(alertMsg);
       fetchDashboardData();
     } catch (err) {

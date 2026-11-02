@@ -24,7 +24,7 @@ const EditHouse = () => {
   useEffect(() => {
     const fetchExistingData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/houses/${id}`);
+        const res = await axios.get(`https://house-rent-app-ten.vercel.app/api/houses/${id}`);
         const house = res.data;
 
         // سیکیورٹی چیک: اگر کوئی غیر متعلقہ شخص یو آر ایل کھول لے تو واپس بھیج دیں
@@ -91,7 +91,7 @@ const EditHouse = () => {
     setLoading(true);
 
     try {
-      await axios.put(`http://localhost:5000/api/houses/${id}`, {
+      await axios.put(`https://house-rent-app-ten.vercel.app/api/houses/${id}`, {
         ...houseData,
         rentPrice: Number(houseData.rentPrice),
         bedrooms: Number(houseData.bedrooms),

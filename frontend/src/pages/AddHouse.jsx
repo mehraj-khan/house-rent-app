@@ -59,7 +59,7 @@ const AddHouse = () => {
 
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/houses/add', {
+      await axios.post('https://house-rent-app-ten.vercel.app/api/houses/add', {
         ...houseData,
         rentPrice: Number(houseData.rentPrice) || 0,
         pricePerDay: Number(houseData.pricePerDay) || 0,

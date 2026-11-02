@@ -39,8 +39,8 @@ const HouseDetails = () => {
     const fetchData = async () => {
       try {
         const [houseRes, bookedRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/houses/${id}`),
-          axios.get(`http://localhost:5000/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] }))
+          axios.get(`https://house-rent-app-ten.vercel.app/api/houses/${id}`),
+          axios.get(`https://house-rent-app-ten.vercel.app/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] }))
         ]);
         setHouse(houseRes.data);
         setActiveImage(houseRes.data.images?.[0] || '');
@@ -133,7 +133,7 @@ const HouseDetails = () => {
 
     setSubmittingToken(true);
     try {
-      await axios.post('http://localhost:5000/api/bookings/create', {
+      await axios.post('https://house-rent-app-ten.vercel.app/api/bookings/create', {
         houseId: id,
         tenantId: currentUserId,
         landlordId: houseOwnerId,

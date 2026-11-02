@@ -23,10 +23,10 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const [statsRes, bookingsRes, housesRes, usersRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/stats').catch(() => ({ data: { totalUsers: 0, totalHouses: 0, totalBookings: 0, totalEarnings: 0 } })),
-        axios.get('http://localhost:5000/api/bookings/all').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/api/houses').catch(() => ({ data: { houses: [] } })),
-        axios.get('http://localhost:5000/api/admin/users').catch(() => ({ data: [] }))
+        axios.get('https://house-rent-app-ten.vercel.app/api/admin/stats').catch(() => ({ data: { totalUsers: 0, totalHouses: 0, totalBookings: 0, totalEarnings: 0 } })),
+        axios.get('https://house-rent-app-ten.vercel.app/api/bookings/all').catch(() => ({ data: [] })),
+        axios.get('https://house-rent-app-ten.vercel.app/api/houses').catch(() => ({ data: { houses: [] } })),
+        axios.get('https://house-rent-app-ten.vercel.app/api/admin/users').catch(() => ({ data: [] }))
       ]);
 
       if (statsRes?.data) setStats(statsRes.data);
@@ -47,7 +47,7 @@ const AdminDashboard = () => {
   const handleBookingAction = async (id, status, msg) => {
     if (!window.confirm(msg)) return;
     try {
-      await axios.put(`http://localhost:5000/api/bookings/${id}/status`, { status });
+      await axios.put(`https://house-rent-app-ten.vercel.app/api/bookings/${id}/status`, { status });
       alert('Status updated successfully!');
       fetchAllAdminData();
     } catch (err) {
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
   const handleDeleteHouse = async (houseId) => {
     if (!window.confirm('Delete this listing from platform?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/houses/${houseId}`);
+      await axios.delete(`https://house-rent-app-ten.vercel.app/api/houses/${houseId}`);
       alert('Listing deleted by Admin! 🗑️');
       fetchAllAdminData();
     } catch (err) {
@@ -69,7 +69,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Delete this user?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/user/${userId}`);
+      await axios.delete(`https://house-rent-app-ten.vercel.app/api/admin/user/${userId}`);
       alert('User deleted!');
       fetchAllAdminData();
     } catch (err) {

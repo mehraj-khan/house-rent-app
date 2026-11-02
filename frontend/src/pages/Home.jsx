@@ -23,7 +23,7 @@ const Home = () => {
 
   const fetchHouses = async () => {
     try {
-      let url = `http://localhost:5000/api/houses?city=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
+      let url = `https://house-rent-app-ten.vercel.app/api/houses?city=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
       if (bedrooms !== 'all') url += `&bedrooms=${bedrooms}`;
       if (suitableFor !== 'all') url += `&suitableFor=${suitableFor}`;
 

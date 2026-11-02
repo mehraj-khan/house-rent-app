@@ -12,7 +12,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', formData);
+      const res = await axios.post('https://house-rent-app-ten.vercel.app/api/auth/register', formData);
       
       // نیا اکاؤنٹ بنتے ہی پچھلا لاگ آؤٹ ہو کر نیا یوزر فوراً لاگ ان ہو جائے گا
       login(res.data.user, res.data.token);
