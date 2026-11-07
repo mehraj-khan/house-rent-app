@@ -8,16 +8,13 @@ const houseSchema = new mongoose.Schema(
     rentPrice: { type: Number, required: true },
     pricePerYear: { type: Number, default: 0 },
     availableFor: [{ type: String, enum: ['daily', 'monthly', 'yearly'] }],
-    // پاکستانی کلچرل ٹیگ (فیملی، بیچلرز، یا دونوں)
-    suitableFor: {
-      type: String,
-      enum: ['family', 'bachelors', 'both'],
-      default: 'both',
-    },
+    suitableFor: { type: String, enum: ['family', 'bachelors', 'both'], default: 'both' },
+    availableFrom: { type: Date, default: null },
+    availableTo: { type: Date, default: null },
 
-    availableFrom: { type: Date, default: null }, // کس تاریخ سے دستیاب ہے
-    availableTo: { type: Date, default: null },   // کس تاریخ تک دستیاب ہے (اگر مستقل ہو تو خالی رہے گا)
-
+    // ⭐ لائیو ریٹنگ اور ریویوز کاؤنٹ
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
 
     city: { type: String, required: true },
     address: { type: String, required: true },

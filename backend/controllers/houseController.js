@@ -30,12 +30,23 @@ export const addHouse = async (req, res) => {
 };
 
 // 2. تمام گھروں کی لسٹ (فلٹرز کے ساتھ)
+// 2. تمام گھروں کی لسٹ (شہر، علاقہ، پتہ اور سوسائٹی کے ہمہ گیر سرچ کے ساتھ)
 export const getAllHouses = async (req, res) => {
   try {
-    const { city, maxPrice, rentType, bedrooms, suitableFor } = req.query;
+    const { city, search, maxPrice, rentType, bedrooms, suitableFor } = req.query;
     let query = {};
 
-    if (city) query.city = { $regex: city, $options: 'i' };
+    // 🔍 اگر یوزر نے کوئی بھی شہر، علاقہ یا محلہ بولا یا لکھا ہو
+    const keyword = search || city;
+    if (keyword && keyword.trim() !== '') {
+      query.$or = [
+        { city: { $regex: keyword.trim(), $options: 'i' } },        // شہر میں تلاش کرے
+        { address: { $regex: keyword.trim(), $options: 'i' } },     // پتہ / سوسائٹی (DHA, Bahria وغیرہ) میں تلاش کرے
+        { title: { $regex: keyword.trim(), $options: 'i' } },       // ٹائٹل میں تلاش کرے
+        { description: { $regex: keyword.trim(), $options: 'i' } }, // تفصیلات میں تلاش کرے
+      ];
+    }
+
     if (rentType && rentType !== 'all') query.availableFor = rentType;
     if (bedrooms && bedrooms !== 'all') query.bedrooms = { $gte: Number(bedrooms) };
     if (suitableFor && suitableFor !== 'all') query.suitableFor = { $in: [suitableFor, 'both'] };
