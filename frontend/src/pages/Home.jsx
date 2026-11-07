@@ -9,7 +9,7 @@ import HouseCard from '../components/HouseCard.jsx';
 import MapView from '../components/MapView.jsx';
 import { useAuth } from '../context/AuthContext';
 
-// عام اردو الفاظ کو صاف کرنے اور انگریزی حروف تہجی میں درست رکھنے کے لیے
+// عام اردو الفاظ کو انگریزی میں درست رکھنے کے لیے
 const commonUrduWords = {
   'لاہور': 'Lahore',
   'کراچی': 'Karachi',
@@ -41,14 +41,13 @@ const Home = () => {
   const [suitableFor, setSuitableFor] = useState('all');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-  // 🎙️ وائس سرچ اسٹیٹس
   const [isListening, setIsListening] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState('');
 
+  // 🔴 یہاں لائیو Vercel بیک اینڈ کا لنک لگایا گیا ہے
   const fetchHouses = async () => {
     try {
-      // سرچ کا لفظ بیک اینڈ کے Universal سرچ کو بھیجیں
-      let url = `http://localhost:5000/api/houses?search=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
+      let url = `https://house-rent-app-ten.vercel.app/api/houses?search=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
       if (bedrooms !== 'all') url += `&bedrooms=${bedrooms}`;
       if (suitableFor !== 'all') url += `&suitableFor=${suitableFor}`;
 
@@ -63,7 +62,6 @@ const Home = () => {
     fetchHouses();
   }, [citySearch, selectedCategory, maxPrice, bedrooms, suitableFor]);
 
-  // 🎙️ لامحدود آواز کی شناخت (Unlimited Any City/Area Voice Search)
   const handleVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -85,12 +83,10 @@ const Home = () => {
     recognition.onresult = (event) => {
       let spokenText = event.results[0][0].transcript.trim();
 
-      // فالتو جملے صاف کریں (مثلاً: "لاہور میں مکان" سے "لاہور" الگ کرنا)
       let cleaned = spokenText
         .replace(/(میں|کا|کے|کو|چاہیے|فلیٹ|مکان|گھر|کمرہ|in|for|rent|house|flat|room)/gi, '')
         .trim();
 
-      // اگر لفظ ڈکشنری میں ہو تو کنورٹ کرے، ورنہ جو بھی بولا گیا ہو (DHA, Gulberg, وغیرہ) وہی سیدھا سرچ میں ڈال دے!
       let finalKeyword = commonUrduWords[cleaned] || commonUrduWords[spokenText] || cleaned || spokenText;
 
       setCitySearch(finalKeyword);
@@ -121,7 +117,6 @@ const Home = () => {
 
   return (
     <div>
-      {/* 🌟 1. ہیرو اور ہمہ گیر وائس سرچ بار */}
       <div className="hero">
         <h1 className="hero-heading">
           {lang === 'en' ? 'Find Stays Across Pakistan' : 'پاکستان بھر میں من پسند رہائش حاصل کریں'}
@@ -169,7 +164,6 @@ const Home = () => {
         )}
       </div>
 
-      {/* 🌟 2. کیٹیگری ٹیبز */}
       <div className="category-scroll-container">
         <div className="category-scroll-list">
           <button
@@ -221,7 +215,6 @@ const Home = () => {
           </button>
         </div>
 
-        {/* 🌟 3. فلٹر پینل */}
         {showFilterPanel && (
           <div style={{ maxWidth: '700px', margin: '15px auto 0', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
@@ -265,7 +258,6 @@ const Home = () => {
         )}
       </div>
 
-      {/* 🌟 4. لسٹنگز یا نقشہ */}
       <div className="container" style={{ position: 'relative', minHeight: '500px', marginTop: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2 style={{ fontSize: '20px' }}>{viewMode === 'grid' ? `Listings (${houses.length})` : 'Interactive Map of Pakistan 🇵🇰'}</h2>
@@ -275,7 +267,7 @@ const Home = () => {
         {viewMode === 'grid' ? (
           houses.length === 0 ? (
             <div className="house-card" style={{ padding: '35px', textAlign: 'center' }}>
-              <p style={{ color: '#64748b' }}>No properties found matching "{citySearch}". Try speaking another area or resetting filters.</p>
+              <p style={{ color: '#64748b' }}>No properties found. Try resetting filters.</p>
               <button className="btn-secondary" onClick={resetFilters} style={{ marginTop: '10px' }}>Reset All Filters</button>
             </div>
           ) : (
