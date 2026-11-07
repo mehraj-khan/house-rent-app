@@ -1,9 +1,13 @@
 import House from '../models/House.js';
 
-// 1. نیا گھر شامل کرنا
+// 1. نیا گھر شامل کرنا (تمام جدید فیلڈز اور ویڈیو لنک کے ساتھ)
 export const addHouse = async (req, res) => {
   try {
-    const { title, description, rentPrice, pricePerDay, pricePerYear, availableFor, suitableFor,availableFrom,availableTo, city, address, bedrooms, bathrooms, images, owner } = req.body;
+    const { 
+      title, description, rentPrice, pricePerDay, pricePerYear, 
+      availableFor, suitableFor, availableFrom, availableTo, videoUrl, 
+      city, address, bedrooms, bathrooms, images, owner 
+    } = req.body;
 
     const newHouse = await House.create({
       title,
@@ -15,6 +19,7 @@ export const addHouse = async (req, res) => {
       suitableFor: suitableFor || 'both',
       availableFrom: availableFrom ? new Date(availableFrom) : null,
       availableTo: availableTo ? new Date(availableTo) : null,
+      videoUrl: videoUrl || '', // 🎥 ویڈیو لنک
       city,
       address,
       bedrooms: Number(bedrooms),
@@ -29,21 +34,20 @@ export const addHouse = async (req, res) => {
   }
 };
 
-// 2. تمام گھروں کی لسٹ (فلٹرز کے ساتھ)
-// 2. تمام گھروں کی لسٹ (شہر، علاقہ، پتہ اور سوسائٹی کے ہمہ گیر سرچ کے ساتھ)
+// 2. تمام گھروں کی لسٹ (شہر، علاقہ، پتہ، سوسائٹی اور کیٹیگری فلٹرز کے ساتھ)
 export const getAllHouses = async (req, res) => {
   try {
     const { city, search, maxPrice, rentType, bedrooms, suitableFor } = req.query;
     let query = {};
 
-    // 🔍 اگر یوزر نے کوئی بھی شہر، علاقہ یا محلہ بولا یا لکھا ہو
+    // 🔍 ملٹی فیلڈ ہمہ گیر سرچ (City, Address, Title, Description)
     const keyword = search || city;
     if (keyword && keyword.trim() !== '') {
       query.$or = [
-        { city: { $regex: keyword.trim(), $options: 'i' } },        // شہر میں تلاش کرے
-        { address: { $regex: keyword.trim(), $options: 'i' } },     // پتہ / سوسائٹی (DHA, Bahria وغیرہ) میں تلاش کرے
-        { title: { $regex: keyword.trim(), $options: 'i' } },       // ٹائٹل میں تلاش کرے
-        { description: { $regex: keyword.trim(), $options: 'i' } }, // تفصیلات میں تلاش کرے
+        { city: { $regex: keyword.trim(), $options: 'i' } },
+        { address: { $regex: keyword.trim(), $options: 'i' } },
+        { title: { $regex: keyword.trim(), $options: 'i' } },
+        { description: { $regex: keyword.trim(), $options: 'i' } },
       ];
     }
 
@@ -66,7 +70,7 @@ export const getAllHouses = async (req, res) => {
   }
 };
 
-// 3. دیگر کنٹرولرز ویسے ہی رہیں گے
+// 3. کسی ایک مکان کی تفصیلات لانا
 export const getHouseById = async (req, res) => {
   try {
     const house = await House.findById(req.params.id).populate('owner', 'name phone email');
@@ -77,6 +81,7 @@ export const getHouseById = async (req, res) => {
   }
 };
 
+// 4. محفوظ طریقے سے مکان ڈیلیٹ کرنا (صرف اصل مالک کر سکتا ہے)
 export const deleteHouse = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -95,6 +100,7 @@ export const deleteHouse = async (req, res) => {
   }
 };
 
+// 5. کسی ایک مالک کے اپنے تمام مکانات لانا (Dashboard)
 export const getMyHouses = async (req, res) => {
   try {
     const houses = await House.find({ owner: req.params.ownerId });
@@ -104,9 +110,15 @@ export const getMyHouses = async (req, res) => {
   }
 };
 
+// 6. مکان کی تفصیلات ایڈٹ / اپڈیٹ کرنا (ویڈیو اور تاریخوں کے ساتھ)
 export const updateHouse = async (req, res) => {
   try {
-    const { title, description, rentPrice, pricePerDay, pricePerYear, availableFor, suitableFor, city, address, bedrooms, bathrooms, images, userId } = req.body;
+    const { 
+      title, description, rentPrice, pricePerDay, pricePerYear, 
+      availableFor, suitableFor, availableFrom, availableTo, videoUrl, 
+      city, address, bedrooms, bathrooms, images, userId 
+    } = req.body;
+
     const house = await House.findById(req.params.id);
     if (!house) return res.status(404).json({ message: 'Ghar nahi mila!' });
 
@@ -118,14 +130,26 @@ export const updateHouse = async (req, res) => {
     const updated = await House.findByIdAndUpdate(
       req.params.id,
       {
-        title, description, rentPrice: Number(rentPrice), pricePerDay: Number(pricePerDay) || 0,
-        pricePerYear: Number(pricePerYear) || 0, availableFor, suitableFor, city, address,
-        bedrooms: Number(bedrooms), bathrooms: Number(bathrooms), images: images?.length ? images : house.images
+        title,
+        description,
+        rentPrice: Number(rentPrice) || 0,
+        pricePerDay: Number(pricePerDay) || 0,
+        pricePerYear: Number(pricePerYear) || 0,
+        availableFor,
+        suitableFor,
+        availableFrom: availableFrom ? new Date(availableFrom) : house.availableFrom,
+        availableTo: availableTo ? new Date(availableTo) : house.availableTo,
+        videoUrl: videoUrl !== undefined ? videoUrl : house.videoUrl, // 👈 ویڈیو اپڈیٹ
+        city,
+        address,
+        bedrooms: Number(bedrooms),
+        bathrooms: Number(bathrooms),
+        images: images?.length ? images : house.images
       },
       { new: true }
     );
 
-    res.status(200).json({ message: 'Updated!', house: updated });
+    res.status(200).json({ message: 'Ghar kamyabi se update ho gaya! ✏️', house: updated });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

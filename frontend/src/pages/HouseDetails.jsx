@@ -5,10 +5,10 @@ import axios from 'axios';
 import { 
   MapPin, Bed, Bath, Phone, Mail, ArrowLeft, Trash2, MessageCircle, 
   ShieldCheck, Copy, Check, Calendar, AlertCircle, Sparkles, Clock, 
-  Star, User as UserIcon, Send, FileText
+  Star, User as UserIcon, Send, FileText, Video, X 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import RentAgreementModal from '../components/RentAgreementModal.jsx'; // کرایہ نامہ پاپ اپ
+import RentAgreementModal from '../components/RentAgreementModal.jsx';
 
 const HouseDetails = () => {
   const { id } = useParams();
@@ -41,8 +41,11 @@ const HouseDetails = () => {
   const [submittingToken, setSubmittingToken] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // 📄 قانونی کرایہ نامہ پاپ اپ اسٹیٹ (درست جگہ پر)
+  // 📄 قانونی کرایہ نامہ پاپ اپ اسٹیٹ
   const [showAgreementModal, setShowAgreementModal] = useState(false);
+
+  // 🎥 ویڈیو واک تھرو پاپ اپ اسٹیٹ (درست جگہ پر کمپوننٹ کے اندر)
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const adminPaymentDetails = {
     JazzCash: { number: '03001234567', title: 'Muhammad Mehraj' },
@@ -175,7 +178,6 @@ const HouseDetails = () => {
     }
   };
 
-  // ریویو سبمٹ کرنا
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
@@ -222,7 +224,7 @@ const HouseDetails = () => {
 
       <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         
-        {/* بایاں حصہ */}
+        {/* بایاں بڑا حصہ */}
         <div style={{ flex: '1 1 600px' }}>
           <div className="house-card" style={{ padding: '20px', marginBottom: '20px' }}>
             <img src={activeImage || 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600'} alt={house.title}
@@ -234,6 +236,34 @@ const HouseDetails = () => {
                   <img key={index} src={img} alt={`Thumb ${index}`} onClick={() => setActiveImage(img)}
                     style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: activeImage === img ? '2.5px solid #2563eb' : '1px solid #cbd5e1' }} />
                 ))}
+              </div>
+            )}
+
+            {/* 🎥 ویڈیو واک تھرو بٹن (تصویر کے بالکل نیچے پرفیکٹ جگہ پر) */}
+            {house.videoUrl && (
+              <div style={{ margin: '10px 0 15px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoModal(true)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+                  }}
+                >
+                  <Video size={18} /> Watch Video Walkthrough Tour (مکان کا ویڈیو ٹور دیکھیں)
+                </button>
               </div>
             )}
 
@@ -268,18 +298,17 @@ const HouseDetails = () => {
             <h3>About this space</h3>
             <p style={{ lineHeight: '1.6', color: '#334155', margin: '8px 0 20px' }}>{house.description}</p>
 
-            {/* مالک اور واٹس ایپ باکس */}
+            {/* رابطہ اور قانونی کرایہ نامہ باکس */}
             <div style={{ background: '#f8fafc', padding: '18px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
               <p style={{ fontSize: '14px', marginBottom: '6px' }}>Host: <b>{house.owner?.name || 'Hotel Host'}</b> ({house.owner?.phone || 'N/A'})</p>
               
-              {/* واٹس ایپ بٹن */}
               {house.owner?.phone && (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" style={{ marginTop: '8px' }}>
                   <MessageCircle size={18} /> Message Host on WhatsApp
                 </a>
               )}
 
-              {/* 📄 قانونی کرایہ نامہ جنریٹر بٹن (درست جگہ پر شامل کیا گیا) */}
+              {/* 📄 قانونی کرایہ نامہ بٹن */}
               <button
                 type="button"
                 onClick={() => setShowAgreementModal(true)}
@@ -389,7 +418,7 @@ const HouseDetails = () => {
           </div>
         </div>
 
-        {/* دایاں حصہ: Airbnb کارڈ */}
+        {/* دایاں حصہ: Airbnb فلوٹنگ کارڈ */}
         <div style={{ flex: '1 1 350px', position: 'sticky', top: '20px' }}>
           <div className="house-card" style={{ padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', border: '1.5px solid #e2e8f0' }}>
             
@@ -542,7 +571,53 @@ const HouseDetails = () => {
         </div>
       )}
 
-      {/* 📄 قانونی کرایہ نامہ کا پاپ اپ (درست اور محفوظ جگہ پر) */}
+      {/* 🎥 ویڈیو پلیئر ونڈو */}
+{/* 🎥 اصلی ویڈیو پلیئر ونڈو (ڈائریکٹ ویڈیو فائل اور یوٹیوب دونوں کو سپورٹ کرے گا) */}
+      {showVideoModal && (
+        <div className="modal-overlay" style={{ zIndex: 999999 }}>
+          <div className="modal-content" style={{ maxWidth: '750px', width: '100%', padding: '20px', background: '#0f172a', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: 'white' }}>
+              <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🎥 Live Video Walkthrough: {house.title}
+              </h4>
+              <button onClick={() => setShowVideoModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* اگر ویڈیو فائل ہو تو اصلی HTML5 ویڈیو پلیئر چلے گا */}
+            {house.videoUrl?.startsWith('data:video') || house.videoUrl?.endsWith('.mp4') ? (
+              <video
+                src={house.videoUrl}
+                controls
+                autoPlay
+                style={{ width: '100%', maxHeight: '420px', borderRadius: '8px', background: '#000' }}
+              />
+            ) : (
+              /* اگر کوئی یوٹیوب کا لنک ہو تو وہ بھی چل سکے گا */
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px' }}>
+                <iframe
+                  src={
+                    house?.videoUrl?.includes('youtu.be')
+                      ? `https://www.youtube.com/embed/${house.videoUrl.split('/').pop().split('?')[0]}?autoplay=1`
+                      : house?.videoUrl?.includes('shorts')
+                      ? `https://www.youtube.com/embed/${house.videoUrl.split('shorts/')[1]?.split('?')[0]}?autoplay=1`
+                      : house?.videoUrl?.includes('watch?v=')
+                      ? `https://www.youtube.com/embed/${house.videoUrl.split('watch?v=')[1]?.split('&')[0]}?autoplay=1`
+                      : house?.videoUrl || ''
+                  }
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Property Video Tour"
+                ></iframe>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* 📄 قانونی کرایہ نامہ پاپ اپ */}
       {showAgreementModal && (
         <RentAgreementModal house={house} onClose={() => setShowAgreementModal(false)} />
       )}

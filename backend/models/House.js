@@ -11,10 +11,11 @@ const houseSchema = new mongoose.Schema(
     suitableFor: { type: String, enum: ['family', 'bachelors', 'both'], default: 'both' },
     availableFrom: { type: Date, default: null },
     availableTo: { type: Date, default: null },
-
-    // ⭐ لائیو ریٹنگ اور ریویوز کاؤنٹ
     averageRating: { type: Number, default: 0 },
     totalReviews: { type: Number, default: 0 },
+
+    // 🎥 مکان کا ویڈیو ٹور لنک (YouTube, Shorts یا ویڈیو لنک)
+    videoUrl: { type: String, default: '' },
 
     city: { type: String, required: true },
     address: { type: String, required: true },

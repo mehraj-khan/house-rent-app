@@ -3,7 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Image as ImageIcon, X, Calendar, Users2, Clock } from 'lucide-react';
+import { Image as ImageIcon, X, Calendar, Clock, Video } from 'lucide-react';
 
 const AddHouse = () => {
   const { currentUser, lang } = useAuth();
@@ -11,17 +11,26 @@ const AddHouse = () => {
   const [loading, setLoading] = useState(false);
 
   const [houseData, setHouseData] = useState({
-    title: '', description: '', city: '', address: '', bedrooms: '', bathrooms: '',
-    rentPrice: '', pricePerDay: '', pricePerYear: '',
+    title: '', 
+    description: '', 
+    city: '', 
+    address: '', 
+    bedrooms: '', 
+    bathrooms: '',
+    rentPrice: '', 
+    pricePerDay: '', 
+    pricePerYear: '',
     availableFor: ['monthly', 'daily'],
     suitableFor: 'both',
-    availableFrom: '', // شروع کی تاریخ
-    availableTo: '',   // ختم ہونے کی تاریخ (اختیاری)
+    availableFrom: '', 
+    availableTo: '',
+    videoUrl: '', // 👈 ویڈیو فائل کا ڈیٹا
     images: []
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
 
+  // 1. تصاویر لوڈ کرنا
   const handleMultipleImages = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
@@ -42,6 +51,24 @@ const AddHouse = () => {
     setHouseData(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== indexToRemove) }));
   };
 
+  // 2. 🎥 گیلری یا کمپیوٹر سے ویڈیو فائل لوڈ کرنے کا فنکشن
+  const handleVideoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // سائز چیک (فری سرور کے لیے فی الحال 15 MB سے چھوٹی ویڈیو)
+      if (file.size > 15 * 1024 * 1024) {
+        alert('Please select a short video clip under 15MB!');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHouseData(prev => ({ ...prev, videoUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const toggleAvailableFor = (type) => {
     setHouseData(prev => {
       const exists = prev.availableFor.includes(type);
@@ -52,7 +79,7 @@ const AddHouse = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      alert(lang === 'en' ? 'Log in first as a Landlord!' : 'پہلے لاگ ان کریں!');
+      alert('Please log in first as a Landlord!');
       navigate('/login');
       return;
     }
@@ -70,7 +97,7 @@ const AddHouse = () => {
         owner: currentUser?.id || currentUser?._id,
       });
 
-      alert(lang === 'en' ? 'Property published with specific availability dates! 🏠🎉' : 'گھر مخصوص دستیابی کی تاریخوں کے ساتھ لسٹ ہو گیا! 🏠🎉');
+      alert('Property published successfully with video tour! 🏠🎉');
       navigate('/');
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
@@ -82,29 +109,26 @@ const AddHouse = () => {
   return (
     <div className="container" style={{ maxWidth: '650px', marginTop: '30px' }}>
       <div className="house-card" style={{ padding: '30px' }}>
-        <h2 style={{ marginBottom: '15px' }}>{lang === 'en' ? 'List Property with Custom Available Dates 🏠' : 'مخصوص تاریخوں کے ساتھ کمرہ یا مکان لسٹ کریں 🏠'}</h2>
+        <h2 style={{ marginBottom: '15px' }}>List Property with Video Tour 🏠</h2>
 
         <form onSubmit={handleSubmit}>
-          <input type="text" placeholder={lang === 'en' ? 'Title (e.g. Guest Room / Luxury Suite)' : 'عنوان (مثلاً گیسٹ روم یا ولا)'} required
+          <input type="text" placeholder="Title (e.g. 2-Bed Luxury Suite / Room)" required
             value={houseData.title} onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
             style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
 
-          {/* 📅 مالک کی دستیابی کی تاریخیں (Host Custom Calendar Window) */}
+          {/* دستیابی کی تاریخیں */}
           <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1.5px solid #bfdbfe', marginBottom: '15px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <Clock size={16} />
-              {lang === 'en' ? 'When is this space available? (Host Availability Range):' : 'یہ جگہ کب سے کب تک دستیاب ہے؟'}
+              <Clock size={16} /> When is this space available?
             </label>
 
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '140px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                  AVAILABLE FROM (کس تاریخ سے):
+                  AVAILABLE FROM:
                 </label>
                 <input
-                  type="date"
-                  min={todayStr}
-                  value={houseData.availableFrom}
+                  type="date" min={todayStr} value={houseData.availableFrom}
                   onChange={(e) => setHouseData({ ...houseData, availableFrom: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
                 />
@@ -112,23 +136,18 @@ const AddHouse = () => {
 
               <div style={{ flex: 1, minWidth: '140px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                  AVAILABLE TO (کس تاریخ تک - اختیاری):
+                  AVAILABLE TO (Optional):
                 </label>
                 <input
-                  type="date"
-                  min={houseData.availableFrom || todayStr}
-                  value={houseData.availableTo}
+                  type="date" min={houseData.availableFrom || todayStr} value={houseData.availableTo}
                   onChange={(e) => setHouseData({ ...houseData, availableTo: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
                 />
               </div>
             </div>
-            <p style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>
-              * اگر آپ اسے مستقل دینا چاہتے ہیں تو "Available To" کو خالی چھوڑ دیں۔
-            </p>
           </div>
 
-          {/* کرائے کی مدت */}
+          {/* کرائے کے ریٹس */}
           <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '15px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
               <Calendar size={15} style={{ verticalAlign: 'middle', marginInlineEnd: '4px' }} />
@@ -184,9 +203,9 @@ const AddHouse = () => {
               style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
           </div>
 
-          {/* تصاویر */}
+          {/* تصاویر کا باکس */}
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>Photos:</label>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>Photos (Multiple Allowed):</label>
             <input type="file" accept="image/*" multiple onChange={handleMultipleImages}
               style={{ padding: '8px', border: '1.5px dashed #2563eb', background: '#eff6ff', width: '100%', borderRadius: '6px', cursor: 'pointer' }} />
             {houseData.images.length > 0 && (
@@ -199,6 +218,43 @@ const AddHouse = () => {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* 🎥 گیلری سے ویڈیو فائل اپلوڈ کرنے کا نیا باکس */}
+          <div style={{ marginBottom: '18px', background: '#fef2f2', padding: '14px', borderRadius: '8px', border: '1.5px dashed #f87171' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <Video size={18} color="#dc2626" />
+              Upload Video Walkthrough from Gallery/Files (موبائل گیلری یا کمپیوٹر سے ویڈیو فائل منتخب کریں):
+            </label>
+            
+            <input
+              type="file"
+              accept="video/*" // 👈 ڈائریکٹ ویڈیو فائلز
+              onChange={handleVideoUpload}
+              style={{ padding: '8px', background: '#ffffff', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+            />
+            
+            <p style={{ fontSize: '11px', color: '#7f1d1d', marginTop: '5px' }}>
+              * اپنے موبائل کے کیمرے سے کمرے کی 10 سے 20 سیکنڈ کی ویڈیو فائل منتخب کریں۔
+            </p>
+
+            {/* ویڈیو منتخب ہونے پر لائیو پریویو */}
+            {houseData.videoUrl && (
+              <div style={{ marginTop: '10px', position: 'relative' }}>
+                <video
+                  src={houseData.videoUrl}
+                  controls
+                  style={{ width: '100%', maxHeight: '180px', borderRadius: '6px', background: '#000' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
+                  style={{ position: 'absolute', top: '6px', right: '6px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Remove Video
+                </button>
               </div>
             )}
           </div>
