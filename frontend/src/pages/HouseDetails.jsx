@@ -17,7 +17,6 @@ const HouseDetails = () => {
   const { currentUser, lang } = useAuth();
   const navigate = useNavigate();
 
-  // تاریخوں اور بکنگ کی اسٹیٹس
   const todayStr = new Date().toISOString().split('T')[0];
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
@@ -28,23 +27,18 @@ const HouseDetails = () => {
   const [durationCount, setDurationCount] = useState(1);
   const [dateError, setDateError] = useState('');
 
-  // ریویوز کی اسٹیٹس
   const [reviews, setReviews] = useState([]);
   const [userRating, setUserRating] = useState(5);
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // پیمنٹ پاپ اپ اسٹیٹس
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('JazzCash');
   const [transactionId, setTransactionId] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // 📄 قانونی کرایہ نامہ پاپ اپ اسٹیٹ
   const [showAgreementModal, setShowAgreementModal] = useState(false);
-
-  // 🎥 ویڈیو واک تھرو پاپ اپ اسٹیٹ (درست جگہ پر کمپوننٹ کے اندر)
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   const adminPaymentDetails = {
@@ -52,12 +46,13 @@ const HouseDetails = () => {
     EasyPaisa: { number: '03119876543', title: 'Muhammad Mehraj' }
   };
 
+  // 🔴 لائیو Vercel بیک اینڈ سے ڈیٹا لوڈ کریں
   const fetchHouseAndReviews = async () => {
     try {
       const [houseRes, bookedRes, reviewsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/houses/${id}`),
-        axios.get(`http://localhost:5000/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] })),
-        axios.get(`http://localhost:5000/api/reviews/${id}`).catch(() => ({ data: [] }))
+        axios.get(`https://house-rent-app-ten.vercel.app/api/houses/${id}`),
+        axios.get(`https://house-rent-app-ten.vercel.app/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] })),
+        axios.get(`https://house-rent-app-ten.vercel.app/api/reviews/${id}`).catch(() => ({ data: [] }))
       ]);
       setHouse(houseRes.data);
       setActiveImage(houseRes.data.images?.[0] || '');
@@ -152,7 +147,7 @@ const HouseDetails = () => {
 
     setSubmittingToken(true);
     try {
-      await axios.post('http://localhost:5000/api/bookings/create', {
+      await axios.post('https://house-rent-app-ten.vercel.app/api/bookings/create', {
         houseId: id,
         tenantId: currentUserId,
         landlordId: houseOwnerId,
@@ -188,7 +183,7 @@ const HouseDetails = () => {
 
     setSubmittingReview(true);
     try {
-      await axios.post('http://localhost:5000/api/reviews/add', {
+      await axios.post('https://house-rent-app-ten.vercel.app/api/reviews/add', {
         houseId: id,
         userId: currentUserId,
         rating: userRating,
@@ -205,6 +200,17 @@ const HouseDetails = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this property?')) return;
+    try {
+      await axios.delete(`https://house-rent-app-ten.vercel.app/api/houses/${id}`, { data: { userId: currentUserId } });
+      alert('Property deleted successfully!');
+      navigate('/');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error');
+    }
+  };
+
   const formatWhatsAppNumber = (phone) => {
     if (!phone) return '';
     let cleaned = phone.replace(/[^0-9]/g, '');
@@ -212,7 +218,7 @@ const HouseDetails = () => {
     return cleaned;
   };
 
-  if (!house) return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
+  if (!house) return <div className="container" style={{ textAlign: 'center', marginTop: '60px' }}>Loading property details...</div>;
 
   const whatsappUrl = `https://wa.me/${formatWhatsAppNumber(house.owner?.phone)}?text=${encodeURIComponent(`Assalam-o-Alaikum! Is "${house.title}" available from ${checkIn} to ${checkOut}?`)}`;
 
@@ -239,7 +245,7 @@ const HouseDetails = () => {
               </div>
             )}
 
-            {/* 🎥 ویڈیو واک تھرو بٹن (تصویر کے بالکل نیچے پرفیکٹ جگہ پر) */}
+            {/* ویڈیو واک تھرو بٹن */}
             {house.videoUrl && (
               <div style={{ margin: '10px 0 15px' }}>
                 <button
@@ -308,7 +314,6 @@ const HouseDetails = () => {
                 </a>
               )}
 
-              {/* 📄 قانونی کرایہ نامہ بٹن */}
               <button
                 type="button"
                 onClick={() => setShowAgreementModal(true)}
@@ -418,7 +423,7 @@ const HouseDetails = () => {
           </div>
         </div>
 
-        {/* دایاں حصہ: Airbnb فلوٹنگ کارڈ */}
+        {/* دایاں حصہ: Airbnb کارڈ */}
         <div style={{ flex: '1 1 350px', position: 'sticky', top: '20px' }}>
           <div className="house-card" style={{ padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', border: '1.5px solid #e2e8f0' }}>
             
@@ -571,53 +576,41 @@ const HouseDetails = () => {
         </div>
       )}
 
-      {/* 🎥 ویڈیو پلیئر ونڈو */}
-{/* 🎥 اصلی ویڈیو پلیئر ونڈو (ڈائریکٹ ویڈیو فائل اور یوٹیوب دونوں کو سپورٹ کرے گا) */}
+      {/* ویڈیو پلیئر ونڈو */}
       {showVideoModal && (
         <div className="modal-overlay" style={{ zIndex: 999999 }}>
-          <div className="modal-content" style={{ maxWidth: '750px', width: '100%', padding: '20px', background: '#0f172a', borderRadius: '12px' }}>
+          <div className="modal-content" style={{ maxWidth: '800px', width: '100%', padding: '20px', background: '#0f172a', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: 'white' }}>
               <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🎥 Live Video Walkthrough: {house.title}
+                🎥 Video Tour: {house.title}
               </h4>
               <button onClick={() => setShowVideoModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
                 <X size={24} />
               </button>
             </div>
 
-            {/* اگر ویڈیو فائل ہو تو اصلی HTML5 ویڈیو پلیئر چلے گا */}
-            {house.videoUrl?.startsWith('data:video') || house.videoUrl?.endsWith('.mp4') ? (
-              <video
-                src={house.videoUrl}
-                controls
-                autoPlay
-                style={{ width: '100%', maxHeight: '420px', borderRadius: '8px', background: '#000' }}
-              />
-            ) : (
-              /* اگر کوئی یوٹیوب کا لنک ہو تو وہ بھی چل سکے گا */
-              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px' }}>
-                <iframe
-                  src={
-                    house?.videoUrl?.includes('youtu.be')
-                      ? `https://www.youtube.com/embed/${house.videoUrl.split('/').pop().split('?')[0]}?autoplay=1`
-                      : house?.videoUrl?.includes('shorts')
-                      ? `https://www.youtube.com/embed/${house.videoUrl.split('shorts/')[1]?.split('?')[0]}?autoplay=1`
-                      : house?.videoUrl?.includes('watch?v=')
-                      ? `https://www.youtube.com/embed/${house.videoUrl.split('watch?v=')[1]?.split('&')[0]}?autoplay=1`
-                      : house?.videoUrl || ''
-                  }
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="Property Video Tour"
-                ></iframe>
-              </div>
-            )}
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px' }}>
+              <iframe
+                src={
+                  house?.videoUrl?.includes('youtu.be')
+                    ? `https://www.youtube.com/embed/${house.videoUrl.split('/').pop().split('?')[0]}?autoplay=1`
+                    : house?.videoUrl?.includes('shorts')
+                    ? `https://www.youtube.com/embed/${house.videoUrl.split('shorts/')[1]?.split('?')[0]}?autoplay=1`
+                    : house?.videoUrl?.includes('watch?v=')
+                    ? `https://www.youtube.com/embed/${house.videoUrl.split('watch?v=')[1]?.split('&')[0]}?autoplay=1`
+                    : house?.videoUrl || ''
+                }
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Property Video Tour"
+              ></iframe>
+            </div>
           </div>
         </div>
       )}
-      
-      {/* 📄 قانونی کرایہ نامہ پاپ اپ */}
+
+      {/* قانونی کرایہ نامہ پاپ اپ */}
       {showAgreementModal && (
         <RentAgreementModal house={house} onClose={() => setShowAgreementModal(false)} />
       )}
