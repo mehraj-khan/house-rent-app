@@ -1,6 +1,8 @@
+/* eslint-disable */
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -8,6 +10,7 @@ const Login = () => {
   const { login, lang } = useAuth();
   const navigate = useNavigate();
 
+  // عام لاگ ان ہینڈلر
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -20,10 +23,48 @@ const Login = () => {
     }
   };
 
+  // 🔴 گوگل 1-Click لاگ ان ہینڈلر
+ const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const res = await axios.post('https://house-rent-app-ten.vercel.app/api/auth/google', {
+        credential: credentialResponse.credential,
+      });
+
+      login(res.data.user, res.data.token);
+      alert(`Welcome ${res.data.user.name}! Google Login Successful 🎉`);
+      navigate('/');
+    } catch (err) {
+      console.error('Google Auth Error:', err);
+      // اصل ایرر اسکرین پر دکھائیں
+      alert('Error: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+
   return (
     <div className="container" style={{ maxWidth: '450px', marginTop: '60px' }}>
       <div className="house-card" style={{ padding: '30px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>{lang === 'en' ? 'Log In' : 'لاگ ان کریں'}</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
+          {lang === 'en' ? 'Log In to HouseRent' : 'لاگ ان کریں'}
+        </h2>
+
+        {/* 🌟 گوگل لاگ ان کا آفیشل بٹن */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => alert('Google Sign-In was unsuccessful.')}
+            useOneTap
+            shape="pill"
+            text="continue_with"
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+          <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold' }}>OR WITH EMAIL</span>
+          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+        </div>
+
         <form onSubmit={handleSubmit}>
           <input
             type="email"
@@ -43,6 +84,7 @@ const Login = () => {
             {lang === 'en' ? 'Log In' : 'لاگ ان'}
           </button>
         </form>
+
         <p style={{ marginTop: '15px', textAlign: 'center', fontSize: '14px' }}>
           {lang === 'en' ? "Don't have an account? " : 'اکاؤنٹ نہیں ہے؟ '}
           <Link to="/register" style={{ color: '#2563eb', fontWeight: 'bold' }}>
