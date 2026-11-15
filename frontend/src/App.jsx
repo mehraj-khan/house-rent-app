@@ -10,6 +10,8 @@ import EditHouse from './pages/EditHouse';
 import AdminDashboard from './pages/AdminDashboard'; // 👈 ایڈمن پیج
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
+import Profile from './pages/Profile';
+
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/edit-house/:id" element={<EditHouse />} />
         <Route path="/admin" element={<AdminDashboard />} /> {/* 👈 ایڈمن کا راستہ */}
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </AuthProvider>
   );

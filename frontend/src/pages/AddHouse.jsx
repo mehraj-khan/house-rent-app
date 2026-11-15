@@ -3,12 +3,14 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Image as ImageIcon, X, Calendar, Clock, Video } from 'lucide-react';
+import { Image as ImageIcon, X, Calendar, Clock, Video, Loader2 } from 'lucide-react';
+import { uploadToCloudinary } from '../utils/uploadCloudinary';
 
 const AddHouse = () => {
   const { currentUser, lang } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const [houseData, setHouseData] = useState({
     title: '', 
@@ -24,26 +26,34 @@ const AddHouse = () => {
     suitableFor: 'both',
     availableFrom: '', 
     availableTo: '',
-    videoUrl: '', // 👈 ویڈیو فائل کا ڈیٹا
+    videoUrl: '', // 👈 ویڈیو فائل یا یوٹیوب لنک
     images: []
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // 1. تصاویر لوڈ کرنا
-  const handleMultipleImages = (e) => {
+  // 1. تصاویر اپلوڈ کرنا (Cloudinary)
+  const handleMultipleImages = async (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const readers = files.map(file => {
-        return new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-      });
-      Promise.all(readers).then(imagesBase64 => {
-        setHouseData(prev => ({ ...prev, images: [...prev.images, ...imagesBase64] }));
-      });
+    if (files.length === 0) return;
+
+    setUploadProgress(10);
+    try {
+      const uploadedUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
+        const url = await uploadToCloudinary(files[i], 'image');
+        uploadedUrls.push(url);
+      }
+
+      setHouseData(prev => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }));
+    } catch (err) {
+      alert('Upload Error: ' + err.message);
+    } finally {
+      setUploadProgress(null);
     }
   };
 
@@ -51,21 +61,27 @@ const AddHouse = () => {
     setHouseData(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== indexToRemove) }));
   };
 
-  // 2. 🎥 گیلری یا کمپیوٹر سے ویڈیو فائل لوڈ کرنے کا فنکشن
-  const handleVideoUpload = (e) => {
+  // 2. ویڈیو فائل اپلوڈ کرنا (Cloudinary)
+  const handleVideoUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // سائز چیک (فری سرور کے لیے فی الحال 15 MB سے چھوٹی ویڈیو)
-      if (file.size > 15 * 1024 * 1024) {
-        alert('Please select a short video clip under 15MB!');
-        return;
-      }
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setHouseData(prev => ({ ...prev, videoUrl: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    if (file.size > 60 * 1024 * 1024) {
+      alert('Video file is over 60MB! Please paste a YouTube link instead or choose a smaller clip.');
+      return;
+    }
+
+    setUploadProgress(1);
+    try {
+      const videoUrl = await uploadToCloudinary(file, 'video', (percent) => {
+        setUploadProgress(percent);
+      });
+      setHouseData(prev => ({ ...prev, videoUrl }));
+      alert('Video uploaded successfully to Cloud! 🎥✅');
+    } catch (err) {
+      alert('Video Upload Error: ' + err.message);
+    } finally {
+      setUploadProgress(null);
     }
   };
 
@@ -84,6 +100,11 @@ const AddHouse = () => {
       return;
     }
 
+    if (houseData.images.length === 0) {
+      alert('Please upload at least one house photo!');
+      return;
+    }
+
     setLoading(true);
     try {
       await axios.post('https://house-rent-app-ten.vercel.app/api/houses/add', {
@@ -93,11 +114,10 @@ const AddHouse = () => {
         pricePerYear: Number(houseData.pricePerYear) || 0,
         bedrooms: Number(houseData.bedrooms),
         bathrooms: Number(houseData.bathrooms),
-        images: houseData.images.length > 0 ? houseData.images : ['https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600'],
         owner: currentUser?.id || currentUser?._id,
       });
 
-      alert('Property published successfully with video tour! 🏠🎉');
+      alert('Property published successfully to Cloud! 🏠🎉');
       navigate('/');
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
@@ -109,7 +129,22 @@ const AddHouse = () => {
   return (
     <div className="container" style={{ maxWidth: '650px', marginTop: '30px' }}>
       <div className="house-card" style={{ padding: '30px' }}>
-        <h2 style={{ marginBottom: '15px' }}>List Property with Video Tour 🏠</h2>
+        <h2 style={{ marginBottom: '15px' }}>List Property with Video & Cloud Storage 🏠</h2>
+
+        {/* اپلوڈنگ پروگریس بار */}
+        {uploadProgress !== null && (
+          <div style={{ background: '#eff6ff', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #bfdbfe' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Loader2 className="spin" size={16} /> Fast Cloud Uploading...
+              </span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#dbeafe', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s ease' }}></div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <input type="text" placeholder="Title (e.g. 2-Bed Luxury Suite / Room)" required
@@ -205,9 +240,12 @@ const AddHouse = () => {
 
           {/* تصاویر کا باکس */}
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>Photos (Multiple Allowed):</label>
-            <input type="file" accept="image/*" multiple onChange={handleMultipleImages}
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>
+              Photos (Fast Cloud Upload):
+            </label>
+            <input type="file" accept="image/*" multiple onChange={handleMultipleImages} disabled={uploadProgress !== null}
               style={{ padding: '8px', border: '1.5px dashed #2563eb', background: '#eff6ff', width: '100%', borderRadius: '6px', cursor: 'pointer' }} />
+            
             {houseData.images.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '10px' }}>
                 {houseData.images.map((img, index) => (
@@ -222,39 +260,76 @@ const AddHouse = () => {
             )}
           </div>
 
-          {/* 🎥 گیلری سے ویڈیو فائل اپلوڈ کرنے کا نیا باکس */}
-          <div style={{ marginBottom: '18px', background: '#fef2f2', padding: '14px', borderRadius: '8px', border: '1.5px dashed #f87171' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          {/* ========================================================
+             🎥 ویڈیو واک تھرو (فائل اپلوڈ اور یوٹیوب لنک دونوں آپشنز)
+             ======================================================== */}
+          <div style={{ marginBottom: '18px', background: '#fef2f2', padding: '16px', borderRadius: '10px', border: '1.5px dashed #f87171' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Video size={18} color="#dc2626" />
-              Upload Video Walkthrough from Gallery/Files (موبائل گیلری یا کمپیوٹر سے ویڈیو فائل منتخب کریں):
+              Property Video Walkthrough (Choose File OR Paste Video Link):
             </label>
-            
-            <input
-              type="file"
-              accept="video/*" // 👈 ڈائریکٹ ویڈیو فائلز
-              onChange={handleVideoUpload}
-              style={{ padding: '8px', background: '#ffffff', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
-            />
-            
-            <p style={{ fontSize: '11px', color: '#7f1d1d', marginTop: '5px' }}>
-              * اپنے موبائل کے کیمرے سے کمرے کی 10 سے 20 سیکنڈ کی ویڈیو فائل منتخب کریں۔
-            </p>
 
-            {/* ویڈیو منتخب ہونے پر لائیو پریویو */}
-            {houseData.videoUrl && (
-              <div style={{ marginTop: '10px', position: 'relative' }}>
-                <video
-                  src={houseData.videoUrl}
-                  controls
-                  style={{ width: '100%', maxHeight: '180px', borderRadius: '6px', background: '#000' }}
-                />
+            {/* اگر ویڈیو پہلے سے شامل ہو تو پلیئر اور ریمو بٹن */}
+            {houseData.videoUrl ? (
+              <div style={{ marginTop: '10px', position: 'relative', background: '#000', borderRadius: '8px', padding: '10px' }}>
+                <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 6px' }}>Selected Video Preview:</p>
+
+                {houseData.videoUrl.includes('youtu') ? (
+                  <iframe
+                    src={
+                      houseData.videoUrl.includes('youtu.be')
+                        ? `https://www.youtube.com/embed/${houseData.videoUrl.split('/').pop().split('?')[0]}`
+                        : houseData.videoUrl.includes('shorts')
+                        ? `https://www.youtube.com/embed/${houseData.videoUrl.split('shorts/')[1]?.split('?')[0]}`
+                        : `https://www.youtube.com/embed/${houseData.videoUrl.split('watch?v=')[1]?.split('&')[0]}`
+                    }
+                    style={{ width: '100%', height: '180px', border: 'none', borderRadius: '6px' }}
+                  />
+                ) : (
+                  <video src={houseData.videoUrl} controls style={{ width: '100%', maxHeight: '180px', borderRadius: '6px', background: '#000' }} />
+                )}
+
                 <button
                   type="button"
                   onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
-                  style={{ position: 'absolute', top: '6px', right: '6px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{
+                    width: '100%', marginTop: '8px', padding: '8px', background: '#dc2626', color: 'white',
+                    border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  }}
                 >
-                  Remove Video
+                  <X size={15} /> Remove Video (ویڈیو ہٹائیں)
                 </button>
+              </div>
+            ) : (
+              /* اگر ویڈیو شامل نہ ہو تو فائل اور لنک دونوں آپشنز */
+              <div>
+                {/* آپشن 1: گیلری سے فائل چنیں */}
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  disabled={uploadProgress !== null}
+                  style={{ padding: '8px', background: '#ffffff', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                />
+                
+                {/* آپشن 2: یا یوٹیوب کا لنک لگائیں */}
+                <div style={{ margin: '10px 0 6px', fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }}></span>
+                  <span>OR PASTE VIDEO LINK (YouTube / Shorts / Reels)</span>
+                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }}></span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="https://youtu.be/... or https://youtube.com/shorts/..."
+                  value={houseData.videoUrl}
+                  onChange={(e) => setHouseData({ ...houseData, videoUrl: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                />
+                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                  * بڑی ویڈیوز کے لیے یوٹیوب شارٹس کا لنک لگانا سب سے تیز اور بہترین طریقہ ہے (0 سیکنڈ لوڈنگ)!
+                </p>
               </div>
             )}
           </div>
@@ -262,8 +337,8 @@ const AddHouse = () => {
           <textarea placeholder="Description..." rows="3" required value={houseData.description} onChange={(e) => setHouseData({ ...houseData, description: e.target.value })}
             style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #cbd5e1' }}></textarea>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', padding: '12px' }}>
-            {loading ? 'Submitting...' : 'Publish Property'}
+          <button type="submit" className="btn-primary" disabled={loading || uploadProgress !== null} style={{ width: '100%', padding: '12px' }}>
+            {loading ? 'Publishing...' : 'Publish Property to Cloud'}
           </button>
         </form>
       </div>

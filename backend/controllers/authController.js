@@ -139,4 +139,33 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// 4. یوزر کی پروفائل اپڈیٹ کرنا (نام اور فون نمبر)
+export const updateProfile = async (req, res) => {
+  try {
+    const { userId, name, phone } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { name, phone },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    res.status(200).json({
+      message: 'Profile updated successfully! ✅',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // 3. گھروں کے تمام کنٹرولرز (Add, Get, Delete)
