@@ -6,5 +6,7 @@ const router = express.Router();
 router.post('/send', sendMessage);
 router.get('/history/:houseId/:user1/:user2', getMessages);
 router.get('/conversations/:userId', getUserConversations);
+router.get('/history/:houseId/:user1/:user2', getMessages);
+
 
 export default router;

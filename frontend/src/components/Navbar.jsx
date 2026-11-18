@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Home, PlusCircle, LogOut, Globe, LogIn, UserPlus, 
-  ShieldAlert, LayoutDashboard, Menu, X 
+  ShieldAlert, LayoutDashboard, Menu, X, MessageCircle 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -66,7 +66,7 @@ const Navbar = () => {
           </button>
         )}
 
-        {/* 🌟 ہر لاگ ان یوزر کے پاس گھر لسٹ کرنے اور مینیج کرنے کی مکمل آزادی */}
+        {/* 🌟 ہر لاگ ان یوزر کے بٹن */}
         {currentUser && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button
@@ -85,21 +85,47 @@ const Navbar = () => {
               <PlusCircle size={16} />
               {lang === 'en' ? 'List Property' : 'گھر لسٹ کریں'}
             </button>
+            <button
+              onClick={() => handleNavigate('/messages')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <MessageCircle size={17} />
+              {lang === 'en' ? 'Messages' : 'پیغامات'}
+            </button>
           </div>
         )}
 
         {currentUser ? (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '4px 8px', borderRadius: '30px', border: '1px solid #e2e8f0' }}>
-            <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>
-              {userInitial}
-            </span>
-            <span style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>{currentUser.name}</span>
+            <div
+              onClick={() => handleNavigate('/profile')}
+              title={lang === 'en' ? 'View Profile' : 'پروفائل دیکھیں'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            >
+              <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>
+                {userInitial}
+              </span>
+              <span style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>{currentUser.name}</span>
+            </div>
             {currentUser?.role === 'admin' && (
               <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '10px' }}>
                 Admin
               </span>
             )}
-            <button onClick={handleLogout} className="btn-outline" style={{ padding: '4px 10px', fontSize: '12px', marginLeft: '4px' }}>
+            <button onClick={handleLogout} className="btn-outline" title="Logout" style={{ padding: '4px 10px', fontSize: '12px', marginLeft: '4px' }}>
               <LogOut size={14} style={{ verticalAlign: 'middle' }} />
             </button>
           </div>
@@ -153,12 +179,23 @@ const Navbar = () => {
                 <PlusCircle size={18} />
                 {lang === 'en' ? 'List a Property' : 'نیا گھر لسٹ کریں'}
               </button>
+              <button
+                onClick={() => handleNavigate('/messages')}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe',
+                  padding: '11px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                <MessageCircle size={18} />
+                {lang === 'en' ? 'Messages Inbox' : 'پیغامات (Inbox)'}
+              </button>
             </>
           )}
 
           {currentUser ? (
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-              <div>
+              <div onClick={() => handleNavigate('/profile')} style={{ cursor: 'pointer' }}>
                 <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>{currentUser.name}</p>
                 <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{currentUser.email}</p>
               </div>

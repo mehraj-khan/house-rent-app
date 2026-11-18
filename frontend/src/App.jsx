@@ -11,6 +11,8 @@ import AdminDashboard from './pages/AdminDashboard'; // 👈 ایڈمن پیج
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 import Profile from './pages/Profile';
+import Messages from './pages/Messages';
+
 
 
 function App() {
@@ -27,6 +29,7 @@ function App() {
         <Route path="/edit-house/:id" element={<EditHouse />} />
         <Route path="/admin" element={<AdminDashboard />} /> {/* 👈 ایڈمن کا راستہ */}
         <Route path="/profile" element={<Profile />} />
+        <Route path="/messages" element={<Messages />} />
       </Routes>
     </AuthProvider>
   );
