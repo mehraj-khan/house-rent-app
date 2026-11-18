@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import RentAgreementModal from '../components/RentAgreementModal.jsx';
+import ChatModal from '../components/ChatModal.jsx'; // 👈 چیٹ ماڈل
 
 const HouseDetails = () => {
   const { id } = useParams();
@@ -32,21 +33,22 @@ const HouseDetails = () => {
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // تمام پاپ اپ ونڈوز کی اسٹیٹس
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false); // 👈 یہ اسٹیٹ اب بالکل درست موجود ہے
+
   const [paymentMethod, setPaymentMethod] = useState('JazzCash');
   const [transactionId, setTransactionId] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const [showAgreementModal, setShowAgreementModal] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const adminPaymentDetails = {
     JazzCash: { number: '03001234567', title: 'Muhammad Mehraj' },
     EasyPaisa: { number: '03119876543', title: 'Muhammad Mehraj' }
   };
 
-  // 🔴 لائیو Vercel بیک اینڈ سے ڈیٹا لوڈ کریں
   const fetchHouseAndReviews = async () => {
     try {
       const [houseRes, bookedRes, reviewsRes] = await Promise.all([
@@ -304,16 +306,53 @@ const HouseDetails = () => {
             <h3>About this space</h3>
             <p style={{ lineHeight: '1.6', color: '#334155', margin: '8px 0 20px' }}>{house.description}</p>
 
-            {/* رابطہ اور قانونی کرایہ نامہ باکس */}
+            {/* رابطہ، چیٹ اور کرایہ نامہ باکس */}
             <div style={{ background: '#f8fafc', padding: '18px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
               <p style={{ fontSize: '14px', marginBottom: '6px' }}>Host: <b>{house.owner?.name || 'Hotel Host'}</b> ({house.owner?.phone || 'N/A'})</p>
               
+              {/* واٹس ایپ بٹن */}
               {house.owner?.phone && (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" style={{ marginTop: '8px' }}>
                   <MessageCircle size={18} /> Message Host on WhatsApp
                 </a>
               )}
 
+              {/* 💬 لائیو چیٹ بٹن (اب بغیر کسی ایرر کے کھلے گا) */}
+              {house.owner && currentUserId !== houseOwnerId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) {
+                      alert('Please log in first to chat with the host!');
+                      navigate('/login');
+                      return;
+                    }
+                    setShowChatModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: '8px',
+                    transition: '0.2s'
+                  }}
+                >
+                  <MessageCircle size={18} color="#60a5fa" />
+                  Live Chat with Host (براہِ راست چیٹ کریں)
+                </button>
+              )}
+
+              {/* 📄 قانونی کرایہ نامہ بٹن */}
               <button
                 type="button"
                 onClick={() => setShowAgreementModal(true)}
@@ -576,7 +615,7 @@ const HouseDetails = () => {
         </div>
       )}
 
-      {/* ویڈیو پلیئر ونڈو */}
+      {/* 🎥 ویڈیو پلیئر ونڈو */}
       {showVideoModal && (
         <div className="modal-overlay" style={{ zIndex: 999999 }}>
           <div className="modal-content" style={{ maxWidth: '800px', width: '100%', padding: '20px', background: '#0f172a', borderRadius: '12px' }}>
@@ -610,9 +649,19 @@ const HouseDetails = () => {
         </div>
       )}
 
-      {/* قانونی کرایہ نامہ پاپ اپ */}
+      {/* 📄 قانونی کرایہ نامہ پاپ اپ */}
       {showAgreementModal && (
         <RentAgreementModal house={house} onClose={() => setShowAgreementModal(false)} />
+      )}
+
+      {/* 💬 لائیو چیٹ پاپ اپ (اب showChatModal بالکل ٹھیک کام کرے گا) */}
+      {showChatModal && (
+        <ChatModal
+          house={house}
+          receiverId={houseOwnerId}
+          receiverName={house.owner?.name}
+          onClose={() => setShowChatModal(false)}
+        />
       )}
 
     </div>

@@ -8,6 +8,7 @@ import houseRoutes from './routes/houseRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 
 dotenv.config();
@@ -49,6 +50,8 @@ app.use('/api/houses', houseRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/chat', chatRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('House Rent Web App Server is Running Successfully! 🏠');
