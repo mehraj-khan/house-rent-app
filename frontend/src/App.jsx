@@ -12,6 +12,7 @@ import { AuthProvider } from './context/AuthContext';
 import './App.css';
 import Profile from './pages/Profile';
 import Messages from './pages/Messages';
+import Roommates from './pages/Roommates';
 
 
 
@@ -30,6 +31,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} /> {/* 👈 ایڈمن کا راستہ */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/roommates" element={<Roommates />} />
       </Routes>
     </AuthProvider>
   );

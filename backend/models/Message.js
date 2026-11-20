@@ -5,7 +5,14 @@ const messageSchema = new mongoose.Schema(
     house: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'House',
-      required: true,
+      required: false,
+      default: null,
+    },
+    requirement: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Requirement',
+      required: false,
+      default: null,
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,

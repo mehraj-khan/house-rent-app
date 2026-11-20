@@ -1,10 +1,15 @@
 /* eslint-disable */
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { X, Send, MessageSquare, Home, Loader2 } from 'lucide-react';
+import { X, Send, MessageSquare, Home, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
+
+const ChatModal = ({ house, requirement, receiverId, receiverName, onClose }) => {
   const { currentUser } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -12,13 +17,14 @@ const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
   const messagesEndRef = useRef(null);
 
   const currentUserId = currentUser?.id || currentUser?._id;
+  const contextId = house?._id || requirement?._id;
 
   // میسجز لائیو فیچ کرنا
   const fetchMessages = async () => {
-    if (!currentUserId || !receiverId || !house?._id) return;
+    if (!currentUserId || !receiverId || !contextId) return;
     try {
       const res = await axios.get(
-        `https://house-rent-app-ten.vercel.app/api/chat/history/${house._id}/${currentUserId}/${receiverId}`
+        `${API_URL}/api/chat/history/${contextId}/${currentUserId}/${receiverId}`
       );
       setMessages(res.data || []);
     } catch (err) {
@@ -26,34 +32,32 @@ const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
     }
   };
 
-  // چیٹ ونڈو کھلتے ہی میسجز لوڈ کرے اور ہر 2.5 سیکنڈ بعد خودکار چیک کرے (Real-time Live Sync)
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 2500);
     return () => clearInterval(interval);
-  }, [house?._id, currentUserId, receiverId]);
+  }, [contextId, currentUserId, receiverId]);
 
-  // اسکرول نیچے رکھنا
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // میسج سینڈ ہینڈلر
   const handleSend = async (e) => {
     e.preventDefault();
     if (!inputText.trim() || sending) return;
 
     const messageText = inputText.trim();
-    setInputText('');
     setSending(true);
 
     try {
-      await axios.post('https://house-rent-app-ten.vercel.app/api/chat/send', {
-        houseId: house._id,
+      await axios.post(`${API_URL}/api/chat/send`, {
+        houseId: house?._id || null,
+        requirementId: requirement?._id || null,
         senderId: currentUserId,
         receiverId: receiverId,
         text: messageText,
       });
+      setInputText('');
       fetchMessages();
     } catch (err) {
       alert('Failed to send message: ' + (err.response?.data?.message || err.message));
@@ -77,7 +81,7 @@ const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
             {receiverName ? receiverName[0].toUpperCase() : 'U'}
           </div>
           <div>
-            <h4 style={{ margin: 0, fontSize: '15px' }}>{receiverName || 'Host'}</h4>
+            <h4 style={{ margin: 0, fontSize: '15px' }}>{receiverName || 'User'}</h4>
             <span style={{ fontSize: '11px', color: '#4ade80' }}>● Online Chat</span>
           </div>
         </div>
@@ -87,11 +91,15 @@ const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
         </button>
       </div>
 
-      {/* مکان کا معلوماتی بینر */}
+      {/* گھر یا روم میٹ پوسٹ کا بینر */}
       <div style={{ background: '#f8fafc', padding: '8px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Home size={16} color="#2563eb" />
+        {house ? <Home size={16} color="#2563eb" /> : <Users size={16} color="#16a34a" />}
         <span style={{ fontSize: '12px', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <b>Regarding:</b> {house?.title} (PKR {house?.rentPrice?.toLocaleString()}/mo)
+          {house ? (
+            <><b>Regarding:</b> {house.title} (PKR {house.rentPrice?.toLocaleString()}/mo)</>
+          ) : (
+            <><b>Roommate Post:</b> {requirement?.title} (PKR {requirement?.maxBudget?.toLocaleString()}/mo)</>
+          )}
         </span>
       </div>
 
@@ -104,7 +112,7 @@ const ChatModal = ({ house, receiverId, receiverName, onClose }) => {
           </div>
         ) : (
           messages.map((m) => {
-            const isMe = m.sender?._id === currentUserId || m.sender === currentUserId;
+            const isMe = String(m.sender?._id || m.sender) === String(currentUserId);
             return (
               <div
                 key={m._id}

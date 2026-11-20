@@ -3,13 +3,18 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   Search, SlidersHorizontal, RotateCcw, Building2, Hotel, Home as HomeIcon, 
-  Map, List, Mic, MicOff, Volume2 
+  Map, List, Mic, MicOff, Volume2, GraduationCap, MapPin 
 } from 'lucide-react';
 import HouseCard from '../components/HouseCard.jsx';
 import MapView from '../components/MapView.jsx';
 import { useAuth } from '../context/AuthContext';
+import { getLiveLocation } from '../utils/getLiveLocation';
 
-// عام اردو الفاظ کو انگریزی میں درست رکھنے کے لیے
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
+
 const commonUrduWords = {
   'لاہور': 'Lahore',
   'کراچی': 'Karachi',
@@ -36,20 +41,36 @@ const Home = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [citySearch, setCitySearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [onlyShared, setOnlyShared] = useState(false);
+  const [sharedGender, setSharedGender] = useState('all');
   const [maxPrice, setMaxPrice] = useState(150000);
   const [bedrooms, setBedrooms] = useState('all');
   const [suitableFor, setSuitableFor] = useState('all');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
+  const [utilityFilters, setUtilityFilters] = useState({
+    separateMeter: false,
+    solarOrUps: false,
+    suiGas: false,
+    wifi: false,
+  });
+
   const [isListening, setIsListening] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState('');
+  const [locating, setLocating] = useState(false);
 
-  // 🔴 یہاں لائیو Vercel بیک اینڈ کا لنک لگایا گیا ہے
   const fetchHouses = async () => {
     try {
-      let url = `https://house-rent-app-ten.vercel.app/api/houses?search=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
+      let url = `${API_URL}/api/houses?search=${citySearch}&rentType=${selectedCategory}&maxPrice=${maxPrice}`;
       if (bedrooms !== 'all') url += `&bedrooms=${bedrooms}`;
       if (suitableFor !== 'all') url += `&suitableFor=${suitableFor}`;
+      if (onlyShared) url += `&isShared=true`;
+      if (sharedGender !== 'all') url += `&sharedGender=${sharedGender}`;
+
+      if (utilityFilters.separateMeter) url += `&separateMeter=true`;
+      if (utilityFilters.solarOrUps) url += `&solarOrUps=true`;
+      if (utilityFilters.suiGas) url += `&suiGas=true`;
+      if (utilityFilters.wifi) url += `&wifi=true`;
 
       const res = await axios.get(url);
       setHouses(res.data.houses || []);
@@ -60,7 +81,19 @@ const Home = () => {
 
   useEffect(() => {
     fetchHouses();
-  }, [citySearch, selectedCategory, maxPrice, bedrooms, suitableFor]);
+  }, [citySearch, selectedCategory, onlyShared, sharedGender, maxPrice, bedrooms, suitableFor, utilityFilters]);
+
+  const handleNearMe = async () => {
+    setLocating(true);
+    try {
+      const { city } = await getLiveLocation();
+      if (city) setCitySearch(city);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -110,9 +143,17 @@ const Home = () => {
   const resetFilters = () => {
     setCitySearch('');
     setSelectedCategory('all');
+    setOnlyShared(false);
+    setSharedGender('all');
     setMaxPrice(150000);
     setBedrooms('all');
     setSuitableFor('all');
+    setUtilityFilters({
+      separateMeter: false,
+      solarOrUps: false,
+      suiGas: false,
+      wifi: false,
+    });
   };
 
   return (
@@ -145,6 +186,29 @@ const Home = () => {
             {isListening ? <MicOff size={20} /> : <Mic size={20} />}
           </button>
 
+          <button
+            type="button"
+            onClick={handleNearMe}
+            disabled={locating}
+            title="Find Stays Near My Live Location"
+            style={{
+              background: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #bfdbfe',
+              padding: '8px 10px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <MapPin size={15} /> {locating ? '...' : 'Near Me'}
+          </button>
+
           <div className="unified-divider"></div>
 
           <button
@@ -168,14 +232,26 @@ const Home = () => {
         <div className="category-scroll-list">
           <button
             className="category-pill"
-            onClick={() => setSelectedCategory('all')}
+            onClick={() => { setSelectedCategory('all'); setOnlyShared(false); }}
             style={{
-              border: selectedCategory === 'all' ? '2px solid #0f172a' : '1px solid #e2e8f0',
-              background: selectedCategory === 'all' ? '#0f172a' : '#ffffff',
-              color: selectedCategory === 'all' ? '#ffffff' : '#475569',
+              border: selectedCategory === 'all' && !onlyShared ? '2px solid #0f172a' : '1px solid #e2e8f0',
+              background: selectedCategory === 'all' && !onlyShared ? '#0f172a' : '#ffffff',
+              color: selectedCategory === 'all' && !onlyShared ? '#ffffff' : '#475569',
             }}
           >
             🌟 All Homes
+          </button>
+
+          <button
+            className="category-pill"
+            onClick={() => setOnlyShared(!onlyShared)}
+            style={{
+              border: onlyShared ? '2px solid #16a34a' : '1px solid #e2e8f0',
+              background: onlyShared ? '#dcfce7' : '#ffffff',
+              color: onlyShared ? '#15803d' : '#475569',
+            }}
+          >
+            <GraduationCap size={16} /> 🎓 Shared / Roommates
           </button>
 
           <button
@@ -216,8 +292,8 @@ const Home = () => {
         </div>
 
         {showFilterPanel && (
-          <div style={{ maxWidth: '700px', margin: '15px auto 0', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+          <div style={{ maxWidth: '750px', margin: '15px auto 0', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
                   Max Budget: <b style={{ color: '#2563eb' }}>PKR {maxPrice.toLocaleString()}</b>
@@ -247,6 +323,49 @@ const Home = () => {
                   <option value="bachelors">👤 Bachelors Allowed</option>
                 </select>
               </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>🎓 Roommate Gender:</label>
+                <select
+                  value={sharedGender}
+                  onChange={(e) => {
+                    setSharedGender(e.target.value);
+                    if (e.target.value !== 'all') setOnlyShared(true);
+                  }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '13px' }}
+                >
+                  <option value="all">Any</option>
+                  <option value="boys">👨 Boys / Male</option>
+                  <option value="girls">👩 Girls / Female</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+              {[
+                { key: 'separateMeter', label: '⚡ Separate Meter' },
+                { key: 'solarOrUps', label: '☀️ Solar / UPS' },
+                { key: 'suiGas', label: '🔥 Sui Gas' },
+                { key: 'wifi', label: '📶 WiFi' },
+              ].map((u) => (
+                <button
+                  key={u.key}
+                  type="button"
+                  onClick={() => setUtilityFilters(prev => ({ ...prev, [u.key]: !prev[u.key] }))}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '999px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    border: utilityFilters[u.key] ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                    background: utilityFilters[u.key] ? '#eff6ff' : '#ffffff',
+                    color: utilityFilters[u.key] ? '#1d4ed8' : '#475569',
+                  }}
+                >
+                  {utilityFilters[u.key] ? '✅ ' : ''}{u.label}
+                </button>
+              ))}
             </div>
 
             <div style={{ textAlign: 'end', marginTop: '15px' }}>

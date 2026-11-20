@@ -3,13 +3,18 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  MapPin, Bed, Bath, Phone, Mail, ArrowLeft, Trash2, MessageCircle, 
-  ShieldCheck, Copy, Check, Calendar, AlertCircle, Sparkles, Clock, 
-  Star, User as UserIcon, Send, FileText, Video, X 
+  MapPin, Bed, Bath, ArrowLeft, MessageCircle, 
+  ShieldCheck, Calendar, Sparkles, Clock, 
+  Star, Send, FileText, Video, X 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import RentAgreementModal from '../components/RentAgreementModal.jsx';
-import ChatModal from '../components/ChatModal.jsx'; // 👈 چیٹ ماڈل
+import ChatModal from '../components/ChatModal.jsx';
+
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
 
 const HouseDetails = () => {
   const { id } = useParams();
@@ -33,11 +38,10 @@ const HouseDetails = () => {
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // تمام پاپ اپ ونڈوز کی اسٹیٹس
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false); // 👈 یہ اسٹیٹ اب بالکل درست موجود ہے
+  const [showChatModal, setShowChatModal] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState('JazzCash');
   const [transactionId, setTransactionId] = useState('');
@@ -52,9 +56,9 @@ const HouseDetails = () => {
   const fetchHouseAndReviews = async () => {
     try {
       const [houseRes, bookedRes, reviewsRes] = await Promise.all([
-        axios.get(`https://house-rent-app-ten.vercel.app/api/houses/${id}`),
-        axios.get(`https://house-rent-app-ten.vercel.app/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] })),
-        axios.get(`https://house-rent-app-ten.vercel.app/api/reviews/${id}`).catch(() => ({ data: [] }))
+        axios.get(`${API_URL}/api/houses/${id}`),
+        axios.get(`${API_URL}/api/bookings/booked-dates/${id}`).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/api/reviews/${id}`).catch(() => ({ data: [] }))
       ]);
       setHouse(houseRes.data);
       setActiveImage(houseRes.data.images?.[0] || '');
@@ -149,7 +153,7 @@ const HouseDetails = () => {
 
     setSubmittingToken(true);
     try {
-      await axios.post('https://house-rent-app-ten.vercel.app/api/bookings/create', {
+      await axios.post(`${API_URL}/api/bookings/create`, {
         houseId: id,
         tenantId: currentUserId,
         landlordId: houseOwnerId,
@@ -185,7 +189,7 @@ const HouseDetails = () => {
 
     setSubmittingReview(true);
     try {
-      await axios.post('https://house-rent-app-ten.vercel.app/api/reviews/add', {
+      await axios.post(`${API_URL}/api/reviews/add`, {
         houseId: id,
         userId: currentUserId,
         rating: userRating,
@@ -205,7 +209,7 @@ const HouseDetails = () => {
   const handleDelete = async () => {
     if (!window.confirm('Delete this property?')) return;
     try {
-      await axios.delete(`https://house-rent-app-ten.vercel.app/api/houses/${id}`, { data: { userId: currentUserId } });
+      await axios.delete(`${API_URL}/api/houses/${id}`, { data: { userId: currentUserId } });
       alert('Property deleted successfully!');
       navigate('/');
     } catch (err) {
@@ -303,6 +307,104 @@ const HouseDetails = () => {
               <span><Bath size={18} /> <b>{house.bathrooms}</b> Bathrooms</span>
             </div>
 
+            {/* 📍 قریبی مشہور جگہ */}
+            {house.nearLandmark && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '10px 14px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', fontWeight: '600' }}>
+                📍 Nearby Landmark: {house.nearLandmark}
+              </div>
+            )}
+
+            {/* ⚡ سچائی کارڈ (Pakistan Utility Truth Checklist) */}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '18px' }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: '15px', color: '#0f172a' }}>
+                🔍 {lang === 'en' ? 'Utility Truth Check (No Surprises)' : 'سہولیات کی سچائی (کوئی پوشیدہ مسئلہ نہیں)'}
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
+                {[
+                  { key: 'separateMeter', label: '⚡ Separate Bijli Meter' },
+                  { key: 'solarOrUps', label: '☀️ Solar / UPS Backup' },
+                  { key: 'suiGas', label: '🔥 Sui Gas' },
+                  { key: 'water24x7', label: '💧 24/7 Water / Boring' },
+                  { key: 'wifi', label: '📶 Fiber WiFi' },
+                  { key: 'parking', label: '🚗 Bike/Car Parking' },
+                ].map((item) => {
+                  const hasIt = Boolean(house.utilities?.[item.key]);
+                  return (
+                    <div
+                      key={item.key}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: hasIt ? '#ecfdf5' : '#f1f5f9',
+                        color: hasIt ? '#065f46' : '#64748b',
+                        border: hasIt ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <span>{hasIt ? '✅ Yes' : '— No'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 📊 Live Market Fair Price Meter */}
+            {house.marketStats && house.marketStats.sampleCount > 0 && (
+              <div
+                style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '18px',
+                  border:
+                    house.marketStats.verdict === 'great_deal'
+                      ? '1.5px solid #22c55e'
+                      : house.marketStats.verdict === 'above_average'
+                      ? '1.5px solid #f59e0b'
+                      : '1.5px solid #3b82f6',
+                  background:
+                    house.marketStats.verdict === 'great_deal'
+                      ? '#f0fdf4'
+                      : house.marketStats.verdict === 'above_average'
+                      ? '#fffbeb'
+                      : '#eff6ff',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                  <b style={{ fontSize: '14px', color: '#0f172a' }}>📊 Live Fair Rent Meter ({house.city})</b>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      background: '#ffffff',
+                      color:
+                        house.marketStats.verdict === 'great_deal'
+                          ? '#15803d'
+                          : house.marketStats.verdict === 'above_average'
+                          ? '#b45309'
+                          : '#1d4ed8',
+                    }}
+                  >
+                    {house.marketStats.verdict === 'great_deal'
+                      ? `💚 Great Deal (${Math.abs(house.marketStats.percentDiff)}% Cheaper)`
+                      : house.marketStats.verdict === 'above_average'
+                      ? `⚠️ ${house.marketStats.percentDiff}% Above Avg`
+                      : '⚖️ Fair Market Price'}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '13px', color: '#334155' }}>
+                  This property: <b>PKR {house.rentPrice?.toLocaleString()}/mo</b> vs {house.city} Average:{' '}
+                  <b>PKR {house.marketStats.avgRent?.toLocaleString()}/mo</b> (compared with {house.marketStats.sampleCount} similar listings).
+                </p>
+              </div>
+            )}
+
             <h3>About this space</h3>
             <p style={{ lineHeight: '1.6', color: '#334155', margin: '8px 0 20px' }}>{house.description}</p>
 
@@ -317,8 +419,8 @@ const HouseDetails = () => {
                 </a>
               )}
 
-              {/* 💬 لائیو چیٹ بٹن (اب بغیر کسی ایرر کے کھلے گا) */}
-              {house.owner && currentUserId !== houseOwnerId && (
+              {/* 💬 لائیو چیٹ بٹن */}
+              {house.owner && !isActualOwner && (
                 <button
                   type="button"
                   onClick={() => {
@@ -654,7 +756,7 @@ const HouseDetails = () => {
         <RentAgreementModal house={house} onClose={() => setShowAgreementModal(false)} />
       )}
 
-      {/* 💬 لائیو چیٹ پاپ اپ (اب showChatModal بالکل ٹھیک کام کرے گا) */}
+      {/* 💬 لائیو چیٹ پاپ اپ */}
       {showChatModal && (
         <ChatModal
           house={house}

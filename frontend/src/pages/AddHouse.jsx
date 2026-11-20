@@ -3,14 +3,21 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Image as ImageIcon, X, Calendar, Clock, Video, Loader2 } from 'lucide-react';
+import { X, Calendar, Clock, Video, Loader2, Users, MapPin } from 'lucide-react';
 import { uploadToCloudinary } from '../utils/uploadCloudinary';
+import { getLiveLocation } from '../utils/getLiveLocation';
+
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
 
 const AddHouse = () => {
   const { currentUser, lang } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   const [houseData, setHouseData] = useState({
     title: '', 
@@ -24,15 +31,42 @@ const AddHouse = () => {
     pricePerYear: '',
     availableFor: ['monthly', 'daily'],
     suitableFor: 'both',
+    isShared: false,
+    totalBeds: 2,
+    sharedGender: 'boys',
     availableFrom: '', 
     availableTo: '',
-    videoUrl: '', // 👈 ویڈیو فائل یا یوٹیوب لنک
-    images: []
+    videoUrl: '',
+    images: [],
+    nearLandmark: '',
+    utilities: {
+      separateMeter: false,
+      solarOrUps: false,
+      suiGas: false,
+      water24x7: false,
+      wifi: false,
+      parking: false,
+    },
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // 1. تصاویر اپلوڈ کرنا (Cloudinary)
+  const handleLiveLocation = async () => {
+    setLocating(true);
+    try {
+      const { city, area } = await getLiveLocation();
+      setHouseData((prev) => ({
+        ...prev,
+        city: city || prev.city,
+        address: area || prev.address,
+      }));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const handleMultipleImages = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -61,7 +95,6 @@ const AddHouse = () => {
     setHouseData(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== indexToRemove) }));
   };
 
-  // 2. ویڈیو فائل اپلوڈ کرنا (Cloudinary)
   const handleVideoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -92,6 +125,18 @@ const AddHouse = () => {
     });
   };
 
+  const toggleUtility = (key) => {
+    setHouseData(prev => ({
+      ...prev,
+      utilities: { ...prev.utilities, [key]: !prev.utilities[key] }
+    }));
+  };
+
+  const splitRentPerPerson =
+    houseData.isShared && Number(houseData.rentPrice) > 0 && Number(houseData.totalBeds) > 0
+      ? Math.round(Number(houseData.rentPrice) / Number(houseData.totalBeds))
+      : 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
@@ -107,13 +152,15 @@ const AddHouse = () => {
 
     setLoading(true);
     try {
-      await axios.post('https://house-rent-app-ten.vercel.app/api/houses/add', {
+      await axios.post(`${API_URL}/api/houses/add`, {
         ...houseData,
         rentPrice: Number(houseData.rentPrice) || 0,
         pricePerDay: Number(houseData.pricePerDay) || 0,
         pricePerYear: Number(houseData.pricePerYear) || 0,
         bedrooms: Number(houseData.bedrooms),
         bathrooms: Number(houseData.bathrooms),
+        totalBeds: houseData.isShared ? Number(houseData.totalBeds) || 2 : 1,
+        pricePerPerson: splitRentPerPerson,
         owner: currentUser?.id || currentUser?._id,
       });
 
@@ -131,7 +178,6 @@ const AddHouse = () => {
       <div className="house-card" style={{ padding: '30px' }}>
         <h2 style={{ marginBottom: '15px' }}>List Property with Video & Cloud Storage 🏠</h2>
 
-        {/* اپلوڈنگ پروگریس بار */}
         {uploadProgress !== null && (
           <div style={{ background: '#eff6ff', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #bfdbfe' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
@@ -147,11 +193,10 @@ const AddHouse = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <input type="text" placeholder="Title (e.g. 2-Bed Luxury Suite / Room)" required
+          <input type="text" placeholder="Title (e.g. 2-Bed Luxury Suite / Shared Student Room)" required
             value={houseData.title} onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
             style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
 
-          {/* دستیابی کی تاریخیں */}
           <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1.5px solid #bfdbfe', marginBottom: '15px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Clock size={16} /> When is this space available?
@@ -182,7 +227,6 @@ const AddHouse = () => {
             </div>
           </div>
 
-          {/* کرائے کے ریٹس */}
           <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '15px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
               <Calendar size={15} style={{ verticalAlign: 'middle', marginInlineEnd: '4px' }} />
@@ -214,7 +258,6 @@ const AddHouse = () => {
             )}
           </div>
 
-          {/* فیملی / بیچلر */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
             {['family', 'bachelors', 'both'].map(s => (
               <button key={s} type="button" onClick={() => setHouseData({ ...houseData, suitableFor: s })}
@@ -223,6 +266,89 @@ const AddHouse = () => {
               </button>
             ))}
           </div>
+
+          <div style={{ background: houseData.isShared ? '#f0fdf4' : '#f8fafc', padding: '15px', borderRadius: '10px', border: houseData.isShared ? '1.5px solid #22c55e' : '1px solid #cbd5e1', marginBottom: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', color: '#0f172a' }}>
+              <input
+                type="checkbox"
+                checked={houseData.isShared}
+                onChange={(e) =>
+                  setHouseData((prev) => ({
+                    ...prev,
+                    isShared: e.target.checked,
+                    suitableFor: e.target.checked && prev.suitableFor === 'family' ? 'bachelors' : prev.suitableFor,
+                  }))
+                }
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <Users size={18} color="#16a34a" />
+              <span>
+                {lang === 'en'
+                  ? '🎓 Allow Shared Room / Hostel / Roommates (Split Rent)'
+                  : '🎓 مشترکہ کمرہ / ہاسٹل / روم میٹ (Split Rent) کی اجازت دیں'}
+              </span>
+            </label>
+
+            {houseData.isShared && (
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #bbf7d0' }}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+                  Sharing Preference:
+                </label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  {[
+                    { value: 'boys', label: '👨 Boys / Male' },
+                    { value: 'girls', label: '👩 Girls / Female' },
+                    { value: 'any', label: '🤝 Anyone' },
+                  ].map((g) => (
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() => setHouseData({ ...houseData, sharedGender: g.value })}
+                      style={{
+                        flex: 1, padding: '8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px',
+                        border: houseData.sharedGender === g.value ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                        background: houseData.sharedGender === g.value ? '#dcfce7' : '#fff',
+                        color: houseData.sharedGender === g.value ? '#15803d' : '#64748b',
+                      }}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+                  Split Rent Between (Total Persons):
+                </label>
+                <input
+                  type="number" min="2" max="10" value={houseData.totalBeds}
+                  onChange={(e) => setHouseData({ ...houseData, totalBeds: e.target.value })}
+                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '14px' }}
+                />
+
+                {splitRentPerPerson > 0 && (
+                  <div style={{ marginTop: '10px', background: '#dcfce7', color: '#14532d', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                    💡 Auto Split Rent: PKR {splitRentPerPerson.toLocaleString()} / person per month ({houseData.totalBeds} roommates)
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 📍 Live Location Auto-Fill بٹن */}
+          <button
+            type="button"
+            onClick={handleLiveLocation}
+            disabled={locating}
+            style={{
+              width: '100%', padding: '9px 12px', marginBottom: '10px', borderRadius: '8px',
+              border: '1.5px solid #2563eb', background: '#eff6ff', color: '#1d4ed8',
+              fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}
+          >
+            <MapPin size={16} />
+            {locating ? 'Detecting Live Location...' : '📍 Use My Live Location (Auto-Fill City & Address)'}
+          </button>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <input type="text" placeholder="City" required value={houseData.city} onChange={(e) => setHouseData({ ...houseData, city: e.target.value })}
@@ -238,7 +364,6 @@ const AddHouse = () => {
               style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
           </div>
 
-          {/* تصاویر کا باکس */}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>
               Photos (Fast Cloud Upload):
@@ -260,16 +385,52 @@ const AddHouse = () => {
             )}
           </div>
 
-          {/* ========================================================
-             🎥 ویڈیو واک تھرو (فائل اپلوڈ اور یوٹیوب لنک دونوں آپشنز)
-             ======================================================== */}
+          <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '10px', border: '1px solid #cbd5e1', marginBottom: '15px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', display: 'block', marginBottom: '10px' }}>
+              ⚡ Utilities & Facilities (سچائی بتائیں — یوزرز کا اعتماد بڑھتا ہے):
+            </label>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+              {[
+                { key: 'separateMeter', label: '⚡ Separate Bijli Meter' },
+                { key: 'solarOrUps', label: '☀️ Solar / UPS Backup' },
+                { key: 'suiGas', label: '🔥 Sui Gas Available' },
+                { key: 'water24x7', label: '💧 24/7 Water / Boring' },
+                { key: 'wifi', label: '📶 Fiber WiFi' },
+                { key: 'parking', label: '🚗 Bike/Car Parking' },
+              ].map((u) => {
+                const active = houseData.utilities[u.key];
+                return (
+                  <button
+                    key={u.key} type="button" onClick={() => toggleUtility(u.key)}
+                    style={{
+                      padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', textAlign: 'left',
+                      border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: active ? '#eff6ff' : '#ffffff',
+                      color: active ? '#1d4ed8' : '#475569',
+                    }}
+                  >
+                    {active ? '✅ ' : ''}{u.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <input
+              type="text"
+              placeholder="📍 Nearby University / Metro / Landmark (e.g. 5 min from FAST / Metro Station)"
+              value={houseData.nearLandmark}
+              onChange={(e) => setHouseData({ ...houseData, nearLandmark: e.target.value })}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+            />
+          </div>
+
           <div style={{ marginBottom: '18px', background: '#fef2f2', padding: '16px', borderRadius: '10px', border: '1.5px dashed #f87171' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <Video size={18} color="#dc2626" />
               Property Video Walkthrough (Choose File OR Paste Video Link):
             </label>
 
-            {/* اگر ویڈیو پہلے سے شامل ہو تو پلیئر اور ریمو بٹن */}
             {houseData.videoUrl ? (
               <div style={{ marginTop: '10px', position: 'relative', background: '#000', borderRadius: '8px', padding: '10px' }}>
                 <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 6px' }}>Selected Video Preview:</p>
@@ -290,8 +451,7 @@ const AddHouse = () => {
                 )}
 
                 <button
-                  type="button"
-                  onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
+                  type="button" onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
                   style={{
                     width: '100%', marginTop: '8px', padding: '8px', background: '#dc2626', color: 'white',
                     border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer',
@@ -302,18 +462,12 @@ const AddHouse = () => {
                 </button>
               </div>
             ) : (
-              /* اگر ویڈیو شامل نہ ہو تو فائل اور لنک دونوں آپشنز */
               <div>
-                {/* آپشن 1: گیلری سے فائل چنیں */}
                 <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  disabled={uploadProgress !== null}
+                  type="file" accept="video/*" onChange={handleVideoUpload} disabled={uploadProgress !== null}
                   style={{ padding: '8px', background: '#ffffff', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
                 />
                 
-                {/* آپشن 2: یا یوٹیوب کا لنک لگائیں */}
                 <div style={{ margin: '10px 0 6px', fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }}></span>
                   <span>OR PASTE VIDEO LINK (YouTube / Shorts / Reels)</span>
@@ -321,15 +475,10 @@ const AddHouse = () => {
                 </div>
 
                 <input
-                  type="text"
-                  placeholder="https://youtu.be/... or https://youtube.com/shorts/..."
-                  value={houseData.videoUrl}
+                  type="text" placeholder="https://youtu.be/... or ..." value={houseData.videoUrl}
                   onChange={(e) => setHouseData({ ...houseData, videoUrl: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
                 />
-                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                  * بڑی ویڈیوز کے لیے یوٹیوب شارٹس کا لنک لگانا سب سے تیز اور بہترین طریقہ ہے (0 سیکنڈ لوڈنگ)!
-                </p>
               </div>
             )}
           </div>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Home, PlusCircle, LogOut, Globe, LogIn, UserPlus, 
-  ShieldAlert, LayoutDashboard, Menu, X, MessageCircle 
+  ShieldAlert, LayoutDashboard, Menu, X, MessageCircle, Users 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -49,6 +49,28 @@ const Navbar = () => {
       <div className="nav-desktop">
         <button className="btn-lang" onClick={toggleLanguage}>
           <Globe size={16} /> {lang === 'en' ? 'اردو' : 'English'}
+        </button>
+
+        {/* 🎓 روم میٹ اور کمرہ تلاش بورڈ (سب کے لیے) */}
+        <button
+          onClick={() => handleNavigate('/roommates')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#f0fdf4',
+            color: '#15803d',
+            border: '1px solid #bbf7d0',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Users size={16} />
+          {lang === 'en' ? 'Roommates' : 'روم میٹس'}
         </button>
 
         {/* 👑 سپر ایڈمن پینل */}
@@ -146,6 +168,19 @@ const Navbar = () => {
         <div className="nav-mobile-dropdown">
           <button className="btn-lang" onClick={toggleLanguage} style={{ justifyContent: 'center' }}>
             <Globe size={18} /> {lang === 'en' ? 'اردو میں تبدیل کریں' : 'Switch to English'}
+          </button>
+
+          {/* 🎓 روم میٹ اور کمرہ تلاش بورڈ (موبائل) */}
+          <button
+            onClick={() => handleNavigate('/roommates')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0',
+              padding: '11px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer'
+            }}
+          >
+            <Users size={18} />
+            {lang === 'en' ? 'Roommates & Room Finder' : 'روم میٹس اور کمرہ تلاش'}
           </button>
 
           {currentUser?.role === 'admin' && (

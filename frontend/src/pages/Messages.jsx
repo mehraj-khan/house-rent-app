@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MessageCircle, Home, ArrowLeft, Clock } from 'lucide-react';
+import { MessageCircle, Home, Users, ArrowLeft, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ChatModal from '../components/ChatModal.jsx';
 
@@ -30,23 +30,26 @@ const Messages = () => {
       const res = await axios.get(`${API_URL}/api/chat/conversations/${currentUserId}`);
       const allMessages = res.data || [];
 
-      // ہر گھر اور دوسرے یوزر کے حساب سے چیٹس کو گروپ کرنا (تازہ ترین میسج سب سے اوپر)
+      // ہر گھر/پوسٹ اور دوسرے یوزر کے حساب سے چیٹس کو گروپ کرنا (تازہ ترین میسج سب سے اوپر)
       const groupedMap = new Map();
 
       allMessages.forEach((msg) => {
-        if (!msg.house || !msg.sender || !msg.receiver) return;
+        if ((!msg.house && !msg.requirement) || !msg.sender || !msg.receiver) return;
 
         const senderId = String(msg.sender._id || msg.sender);
         const isMe = senderId === String(currentUserId);
         const otherUser = isMe ? msg.receiver : msg.sender;
         const otherUserId = String(otherUser._id || otherUser);
-        const houseId = String(msg.house._id || msg.house);
 
-        const key = `${houseId}_${otherUserId}`;
+        const contextObj = msg.house || msg.requirement;
+        const contextId = String(contextObj._id || contextObj);
+
+        const key = `${contextId}_${otherUserId}`;
         if (!groupedMap.has(key)) {
           groupedMap.set(key, {
             key,
-            house: msg.house,
+            house: msg.house || null,
+            requirement: msg.requirement || null,
             otherUserId,
             otherUserName: otherUser.name || 'User',
             lastMessage: msg.text,
@@ -121,7 +124,7 @@ const Messages = () => {
               {lang === 'en' ? 'No messages yet' : 'ابھی کوئی پیغام نہیں آیا'}
             </h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
-              {lang === 'en' ? 'When someone messages you about a property, it will appear here.' : 'جب کوئی آپ سے مکان کے بارے میں رابطہ کرے گا تو یہاں نظر آئے گا۔'}
+              {lang === 'en' ? 'When someone messages you about a property or roommate post, it will appear here.' : 'جب کوئی آپ سے مکان یا روم میٹ پوسٹ کے بارے میں رابطہ کرے گا تو یہاں نظر آئے گا۔'}
             </p>
           </div>
         ) : (
@@ -132,6 +135,7 @@ const Messages = () => {
                 onClick={() =>
                   setActiveChat({
                     house: conv.house,
+                    requirement: conv.requirement,
                     receiverId: conv.otherUserId,
                     receiverName: conv.otherUserName,
                   })
@@ -172,7 +176,15 @@ const Messages = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <b style={{ fontSize: '15px', color: '#0f172a' }}>{conv.otherUserName}</b>
                       <span style={{ fontSize: '12px', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Home size={12} /> {conv.house.title}
+                        {conv.house ? (
+                          <>
+                            <Home size={12} /> {conv.house.title}
+                          </>
+                        ) : (
+                          <>
+                            <Users size={12} /> {conv.requirement?.title}
+                          </>
+                        )}
                       </span>
                     </div>
 
@@ -202,6 +214,7 @@ const Messages = () => {
       {activeChat && (
         <ChatModal
           house={activeChat.house}
+          requirement={activeChat.requirement}
           receiverId={activeChat.receiverId}
           receiverName={activeChat.receiverName}
           onClose={() => {

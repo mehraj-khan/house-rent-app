@@ -14,7 +14,6 @@ const houseSchema = new mongoose.Schema(
     averageRating: { type: Number, default: 0 },
     totalReviews: { type: Number, default: 0 },
 
-    // 🎥 مکان کا ویڈیو ٹور لنک (YouTube, Shorts یا ویڈیو لنک)
     videoUrl: { type: String, default: '' },
 
     city: { type: String, required: true },
@@ -24,6 +23,23 @@ const houseSchema = new mongoose.Schema(
     images: [{ type: String }],
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
     isAvailable: { type: Boolean, default: true },
+
+    // 🎓 Shared / Roommate Fields
+    isShared: { type: Boolean, default: false },
+    totalBeds: { type: Number, default: 1 },
+    pricePerPerson: { type: Number, default: 0 },
+    sharedGender: { type: String, enum: ['boys', 'girls', 'any'], default: 'any' },
+
+    // ⚡ نیا: پاکستان یوٹیلیٹی سچائی کارڈ (Utility Truth Badges)
+    utilities: {
+      separateMeter: { type: Boolean, default: false },
+      solarOrUps: { type: Boolean, default: false },
+      suiGas: { type: Boolean, default: false },
+      water24x7: { type: Boolean, default: false },
+      wifi: { type: Boolean, default: false },
+      parking: { type: Boolean, default: false },
+    },
+    nearLandmark: { type: String, default: '' },
   },
   { timestamps: true }
 );
