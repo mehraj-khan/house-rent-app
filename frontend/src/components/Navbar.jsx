@@ -1,24 +1,104 @@
 /* eslint-disable */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Home, PlusCircle, LogOut, Globe, LogIn, UserPlus, 
-  ShieldAlert, LayoutDashboard, Menu, X, MessageCircle, Users 
+  ShieldAlert, LayoutDashboard, Menu, X, MessageCircle, Users, Bell, CheckCheck 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
 
 const Navbar = () => {
   const { currentUser, logout, lang, toggleLanguage } = useAuth();
   const navigate = useNavigate();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const notifRef = useRef(null);
+
+  const currentUserId = currentUser?.id || currentUser?._id;
+
+  // 🔔 ہر 5 سیکنڈ بعد نئے میسجز اور نوٹیفیکیشنز چیک کرنا
+  const fetchNotifications = async () => {
+    if (!currentUserId) return;
+    try {
+      const res = await axios.get(`${API_URL}/api/notifications/${currentUserId}`);
+      setNotifications(res.data.notifications || []);
+      setUnreadNotifs(res.data.unreadNotificationsCount || 0);
+      setUnreadMessages(res.data.unreadMessagesCount || 0);
+    } catch {
+      // خاموش ایرر ہینڈلنگ
+    }
+  };
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setNotifications([]);
+      setUnreadNotifs(0);
+      setUnreadMessages(0);
+      return;
+    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [currentUserId]);
+
+  // باہر کلک کرنے پر نوٹیفیکیشن باکس بند ہو جائے
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    if (!currentUserId) return;
+    try {
+      await axios.put(`${API_URL}/api/notifications/read-all/${currentUserId}`);
+      setUnreadNotifs(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    setNotifOpen(false);
+    setMobileMenuOpen(false);
+    if (!notif.isRead) {
+      try {
+        await axios.put(`${API_URL}/api/notifications/read/${notif._id}`);
+        setUnreadNotifs((prev) => Math.max(prev - 1, 0));
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+        );
+      } catch {
+        // ignore
+      }
+    }
+    navigate(notif.link || '/');
+  };
 
   const handleNavigate = (path) => {
     setMobileMenuOpen(false);
+    setNotifOpen(false);
     navigate(path);
   };
 
   const handleLogout = () => {
     setMobileMenuOpen(false);
+    setNotifOpen(false);
     logout();
     navigate('/');
   };
@@ -51,7 +131,7 @@ const Navbar = () => {
           <Globe size={16} /> {lang === 'en' ? 'اردو' : 'English'}
         </button>
 
-        {/* 🎓 روم میٹ اور کمرہ تلاش بورڈ (سب کے لیے) */}
+        {/* 🎓 روم میٹ بورڈ */}
         <button
           onClick={() => handleNavigate('/roommates')}
           style={{
@@ -88,7 +168,7 @@ const Navbar = () => {
           </button>
         )}
 
-        {/* 🌟 ہر لاگ ان یوزر کے بٹن */}
+        {/* 🌟 لاگ ان یوزر کے بٹن */}
         {currentUser && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button
@@ -99,6 +179,7 @@ const Navbar = () => {
               <LayoutDashboard size={16} />
               {lang === 'en' ? 'My Dashboard' : 'میرا ڈیش بورڈ'}
             </button>
+
             <button
               className="btn-primary"
               onClick={() => handleNavigate('/add-house')}
@@ -107,9 +188,12 @@ const Navbar = () => {
               <PlusCircle size={16} />
               {lang === 'en' ? 'List Property' : 'گھر لسٹ کریں'}
             </button>
+
+            {/* 💬 Messages بٹن (Unread Badge کے ساتھ) */}
             <button
               onClick={() => handleNavigate('/messages')}
               style={{
+                position: 'relative',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -126,7 +210,146 @@ const Navbar = () => {
             >
               <MessageCircle size={17} />
               {lang === 'en' ? 'Messages' : 'پیغامات'}
+              {unreadMessages > 0 && (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    marginLeft: '2px',
+                  }}
+                >
+                  {unreadMessages}
+                </span>
+              )}
             </button>
+
+            {/* 🔔 Notification Bell بٹن + Dropdown */}
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setNotifOpen(!notifOpen)}
+                title={lang === 'en' ? 'Notifications' : 'اطلاعات'}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                }}
+              >
+                <Bell size={18} />
+                {unreadNotifs > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      minWidth: '18px',
+                      height: '18px',
+                      borderRadius: '999px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px',
+                      border: '2px solid #fff',
+                    }}
+                  >
+                    {unreadNotifs}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '46px',
+                    right: 0,
+                    width: '320px',
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 12px 35px rgba(0,0,0,0.15)',
+                    zIndex: 99999,
+                    padding: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid #e2e8f0' }}>
+                    <b style={{ fontSize: '14px', color: '#0f172a' }}>
+                      🔔 {lang === 'en' ? 'Notifications' : 'نوٹیفیکیشنز'}
+                    </b>
+                    {unreadNotifs > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMarkAllRead}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#2563eb',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <CheckCheck size={14} /> Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#64748b', fontSize: '13px', padding: '20px 0', margin: 0 }}>
+                      {lang === 'en' ? 'No notifications yet' : 'ابھی کوئی اطلاع نہیں'}
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {notifications.map((n) => (
+                        <div
+                          key={n._id}
+                          onClick={() => handleNotificationClick(n)}
+                          style={{
+                            padding: '10px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            background: n.isRead ? '#f8fafc' : '#eff6ff',
+                            border: n.isRead ? '1px solid #f1f5f9' : '1px solid #bfdbfe',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                            <b style={{ fontSize: '13px', color: '#0f172a' }}>{n.title}</b>
+                            {!n.isRead && (
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb', flexShrink: 0 }} />
+                            )}
+                          </div>
+                          <p style={{ margin: '4px 0 2px', fontSize: '12px', color: '#475569' }}>{n.message}</p>
+                          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                            {new Date(n.updatedAt || n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -170,7 +393,6 @@ const Navbar = () => {
             <Globe size={18} /> {lang === 'en' ? 'اردو میں تبدیل کریں' : 'Switch to English'}
           </button>
 
-          {/* 🎓 روم میٹ اور کمرہ تلاش بورڈ (موبائل) */}
           <button
             onClick={() => handleNavigate('/roommates')}
             style={{
@@ -224,6 +446,11 @@ const Navbar = () => {
               >
                 <MessageCircle size={18} />
                 {lang === 'en' ? 'Messages Inbox' : 'پیغامات (Inbox)'}
+                {unreadMessages > 0 && (
+                  <span style={{ background: '#ef4444', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '1px 7px', borderRadius: '999px' }}>
+                    {unreadMessages}
+                  </span>
+                )}
               </button>
             </>
           )}

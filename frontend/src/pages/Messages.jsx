@@ -30,7 +30,6 @@ const Messages = () => {
       const res = await axios.get(`${API_URL}/api/chat/conversations/${currentUserId}`);
       const allMessages = res.data || [];
 
-      // ہر گھر/پوسٹ اور دوسرے یوزر کے حساب سے چیٹس کو گروپ کرنا (تازہ ترین میسج سب سے اوپر)
       const groupedMap = new Map();
 
       allMessages.forEach((msg) => {
@@ -45,6 +44,8 @@ const Messages = () => {
         const contextId = String(contextObj._id || contextObj);
 
         const key = `${contextId}_${otherUserId}`;
+        const msgUnread = !isMe && !msg.isRead;
+
         if (!groupedMap.has(key)) {
           groupedMap.set(key, {
             key,
@@ -55,7 +56,10 @@ const Messages = () => {
             lastMessage: msg.text,
             lastSenderIsMe: isMe,
             updatedAt: msg.createdAt,
+            hasUnread: msgUnread,
           });
+        } else if (msgUnread) {
+          groupedMap.get(key).hasUnread = true;
         }
       });
 
@@ -147,8 +151,8 @@ const Messages = () => {
                   gap: '14px',
                   padding: '14px 16px',
                   borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  background: '#f8fafc',
+                  border: conv.hasUnread ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                  background: conv.hasUnread ? '#eff6ff' : '#f8fafc',
                   cursor: 'pointer',
                   transition: '0.2s',
                 }}
@@ -200,9 +204,16 @@ const Messages = () => {
                     <Clock size={12} />
                     {new Date(conv.updatedAt).toLocaleDateString()}
                   </div>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', background: '#fff', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '8px' }}>
-                    {lang === 'en' ? 'Reply' : 'جواب دیں'}
-                  </span>
+                  <div>
+                    {conv.hasUnread && (
+                      <span style={{ background: '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '999px', marginInlineEnd: '6px' }}>
+                        NEW
+                      </span>
+                    )}
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', background: '#fff', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '8px' }}>
+                      {lang === 'en' ? 'Reply' : 'جواب دیں'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -210,7 +221,6 @@ const Messages = () => {
         )}
       </div>
 
-      {/* کلک کرنے پر لائیو چیٹ ونڈو کھل جائے گی */}
       {activeChat && (
         <ChatModal
           house={activeChat.house}

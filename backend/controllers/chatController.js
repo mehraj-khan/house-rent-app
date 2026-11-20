@@ -1,6 +1,8 @@
 import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 
-// 1. نیا میسج بھیجنا (House یا Roommate Requirement دونوں کے لیے)
+// 1. نیا میسج بھیجنا + نوٹیفیکیشن بنانا
 export const sendMessage = async (req, res) => {
   try {
     const { houseId, requirementId, senderId, receiverId, text } = req.body;
@@ -15,7 +17,39 @@ export const sendMessage = async (req, res) => {
       sender: senderId,
       receiver: receiverId,
       text,
+      isRead: false,
     });
+
+    // 🔔 ریسیور کے لیے نوٹیفیکیشن بنائیں (اسپام سے بچنے کے لیے ایک ہی ان ریڈ نوٹیفیکیشن اپڈیٹ کریں)
+    try {
+      const senderUser = await User.findById(senderId).select('name');
+      const senderName = senderUser?.name || 'Someone';
+      const shortText = text.length > 45 ? text.slice(0, 45) + '...' : text;
+
+      const existingNotif = await Notification.findOne({
+        user: receiverId,
+        sender: senderId,
+        type: 'message',
+        isRead: false,
+      });
+
+      if (existingNotif) {
+        existingNotif.message = `${senderName}: "${shortText}"`;
+        await existingNotif.save();
+      } else {
+        await Notification.create({
+          user: receiverId,
+          sender: senderId,
+          title: `💬 New Message from ${senderName}`,
+          message: shortText,
+          type: 'message',
+          link: '/messages',
+          isRead: false,
+        });
+      }
+    } catch {
+      // نوٹیفیکیشن ایرر میسج کو نہ روکے
+    }
 
     res.status(201).json({ message: 'Message sent!', data: message });
   } catch (error) {
@@ -23,10 +57,21 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// 2. دو یوزرز کے درمیان ہونے والی چیٹ لانا (House یا Requirement کے لیے)
+// 2. دو یوزرز کے درمیان چیٹ لانا + خودکار Read مارک کرنا
 export const getMessages = async (req, res) => {
   try {
     const { houseId, user1, user2 } = req.params;
+
+    // user1 (لاگ ان یوزر) جب چیٹ کھولے تو user2 کے بھیجے گئے میسجز Read ہو جائیں
+    await Message.updateMany(
+      {
+        $or: [{ house: houseId }, { requirement: houseId }],
+        sender: user2,
+        receiver: user1,
+        isRead: false,
+      },
+      { isRead: true }
+    );
 
     const messages = await Message.find({
       $and: [
@@ -48,7 +93,7 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// 3. کسی یوزر کی تمام ایکٹیو چیٹس لانا (Dashboard / Messages Inbox)
+// 3. تمام ایکٹیو چیٹس لانا (Messages Inbox)
 export const getUserConversations = async (req, res) => {
   try {
     const { userId } = req.params;
