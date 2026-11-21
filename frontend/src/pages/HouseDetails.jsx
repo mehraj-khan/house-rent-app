@@ -5,7 +5,7 @@ import axios from 'axios';
 import { 
   MapPin, Bed, Bath, ArrowLeft, MessageCircle, 
   ShieldCheck, Calendar, Sparkles, Clock, 
-  Star, Send, FileText, Video, X 
+  Star, Send, FileText, Video, X, Handshake, Target 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import RentAgreementModal from '../components/RentAgreementModal.jsx';
@@ -43,6 +43,15 @@ const HouseDetails = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
 
+  // 🤝 InDrive Offer اسٹیٹس
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offeredRent, setOfferedRent] = useState('');
+  const [offerNote, setOfferNote] = useState('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+
+  // 🎯 Auto-Match Radar اسٹیٹ
+  const [matchingTenants, setMatchingTenants] = useState([]);
+
   const [paymentMethod, setPaymentMethod] = useState('JazzCash');
   const [transactionId, setTransactionId] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
@@ -79,6 +88,16 @@ const HouseDetails = () => {
   const currentUserId = currentUser?.id || currentUser?._id;
   const houseOwnerId = house?.owner?._id || house?.owner;
   const isActualOwner = Boolean(currentUserId && houseOwnerId && String(currentUserId) === String(houseOwnerId));
+
+  // 🎯 اگر مالک لاگ ان ہو تو میچنگ کرایہ دار لوڈ کریں
+  useEffect(() => {
+    if (isActualOwner && id) {
+      axios
+        .get(`${API_URL}/api/matches/for-house/${id}`)
+        .then((res) => setMatchingTenants(res.data || []))
+        .catch(() => {});
+    }
+  }, [isActualOwner, id]);
 
   useEffect(() => {
     setDateError('');
@@ -141,6 +160,44 @@ const HouseDetails = () => {
       return;
     }
     setShowTokenModal(true);
+  };
+
+  const handleOfferSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      alert('Please log in first to make an offer!');
+      navigate('/login');
+      return;
+    }
+    if (dateError) {
+      alert(dateError);
+      return;
+    }
+
+    setSubmittingOffer(true);
+    try {
+      await axios.post(`${API_URL}/api/offers/create`, {
+        houseId: id,
+        tenantId: currentUserId,
+        landlordId: houseOwnerId,
+        rentType: selectedDuration,
+        checkIn: new Date(checkIn),
+        checkOut: new Date(checkOut),
+        durationCount,
+        originalRent: bill.totalRent,
+        offeredRent: Number(offeredRent),
+        note: offerNote,
+      });
+
+      alert('Offer sent to Host! Track responses in the Offers page 🤝🎉');
+      setShowOfferModal(false);
+      setOfferedRent('');
+      setOfferNote('');
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSubmittingOffer(false);
+    }
   };
 
   const handleBookingSubmit = async (e) => {
@@ -234,6 +291,39 @@ const HouseDetails = () => {
         <ArrowLeft size={18} /> Back to Listings
       </Link>
 
+      {/* 🎯 صرف مالک مکان کے لیے Auto-Match Radar */}
+      {isActualOwner && matchingTenants.length > 0 && (
+        <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e3a8a)', color: '#fff', padding: '18px 20px', borderRadius: '14px', marginBottom: '22px', boxShadow: '0 8px 25px rgba(30,58,138,0.2)' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Target size={20} color="#4ade80" />
+            Smart Auto-Match Radar: {matchingTenants.length} Tenants Looking in {house.city}!
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+            {matchingTenants.slice(0, 4).map((t) => {
+              const tWa = `https://wa.me/${formatWhatsAppNumber(t.phone)}?text=${encodeURIComponent(
+                `Assalam-o-Alaikum ${t.user?.name || ''}! I saw your requirement "${t.title}". My property "${house.title}" in ${house.city} matches your budget!`
+              )}`;
+              return (
+                <div key={t._id} style={{ background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <b style={{ fontSize: '13px' }}>{t.user?.name || 'Tenant'}</b>
+                    <span style={{ background: '#22c55e', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '2px 7px', borderRadius: '999px' }}>
+                      {t.matchPercent}% Match
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '8px' }}>
+                    {t.area} • Budget: PKR {t.maxBudget?.toLocaleString()}/mo
+                  </div>
+                  <a href={tWa} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#22c55e', color: '#fff', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>
+                    <MessageCircle size={12} /> Send My Property
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         
         {/* بایاں بڑا حصہ */}
@@ -314,7 +404,7 @@ const HouseDetails = () => {
               </div>
             )}
 
-            {/* ⚡ سچائی کارڈ (Pakistan Utility Truth Checklist) */}
+            {/* ⚡ سچائی کارڈ */}
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '18px' }}>
               <h4 style={{ margin: '0 0 10px', fontSize: '15px', color: '#0f172a' }}>
                 🔍 {lang === 'en' ? 'Utility Truth Check (No Surprises)' : 'سہولیات کی سچائی (کوئی پوشیدہ مسئلہ نہیں)'}
@@ -406,20 +496,18 @@ const HouseDetails = () => {
             )}
 
             <h3>About this space</h3>
-            <p style={{ lineHeight: '1.6', color: '#334155', margin: '8px 0 20px' }}>{house.description}</p>
+            <p style={{ lineHeight: '1.6', color: '#334155', margin: '8px 0 20px', whiteSpace: 'pre-line' }}>{house.description}</p>
 
             {/* رابطہ، چیٹ اور کرایہ نامہ باکس */}
             <div style={{ background: '#f8fafc', padding: '18px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
               <p style={{ fontSize: '14px', marginBottom: '6px' }}>Host: <b>{house.owner?.name || 'Hotel Host'}</b> ({house.owner?.phone || 'N/A'})</p>
               
-              {/* واٹس ایپ بٹن */}
               {house.owner?.phone && (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" style={{ marginTop: '8px' }}>
                   <MessageCircle size={18} /> Message Host on WhatsApp
                 </a>
               )}
 
-              {/* 💬 لائیو چیٹ بٹن */}
               {house.owner && !isActualOwner && (
                 <button
                   type="button"
@@ -454,7 +542,6 @@ const HouseDetails = () => {
                 </button>
               )}
 
-              {/* 📄 قانونی کرایہ نامہ بٹن */}
               <button
                 type="button"
                 onClick={() => setShowAgreementModal(true)}
@@ -652,10 +739,83 @@ const HouseDetails = () => {
               <Sparkles size={18} />
               Reserve Available Dates
             </button>
+
+            {/* 🤝 InDrive-Style Make an Offer بٹن */}
+            {!isActualOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) {
+                    alert('Please log in first to make an offer!');
+                    navigate('/login');
+                    return;
+                  }
+                  if (dateError) {
+                    alert(dateError);
+                    return;
+                  }
+                  setOfferedRent(String(Math.round(bill.totalRent * 0.9)));
+                  setShowOfferModal(true);
+                }}
+                style={{
+                  width: '100%', padding: '12px', marginTop: '10px',
+                  background: '#fef3c7', color: '#b45309', border: '2px solid #f59e0b',
+                  borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                }}
+              >
+                <Handshake size={18} />
+                {lang === 'en' ? 'Make an Offer (Bargain Rent)' : 'اپنا کرایہ لگائیں (Make an Offer)'}
+              </button>
+            )}
           </div>
         </div>
 
       </div>
+
+      {/* 🤝 Make an Offer پاپ اپ */}
+      {showOfferModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px' }}>
+          <div style={{ background: '#fff', padding: '24px', borderRadius: '14px', maxWidth: '450px', width: '100%' }}>
+            <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309' }}>
+              <Handshake /> Make Your Offer
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b' }}>
+              Original Rent for {durationCount} {selectedDuration}: <b>PKR {bill.totalRent.toLocaleString()}</b>
+            </p>
+            <form onSubmit={handleOfferSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Your Offered Rent (PKR):
+                </label>
+                <input
+                  type="number" required min="500" value={offeredRent}
+                  onChange={(e) => setOfferedRent(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '15px', fontWeight: 'bold', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Short Note to Host (Optional):
+                </label>
+                <textarea
+                  rows="2" placeholder="e.g. Family of 3, long-term stay, advance ready..."
+                  value={offerNote} onChange={(e) => setOfferNote(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn-primary" disabled={submittingOffer} style={{ flex: 1, padding: '11px' }}>
+                  {submittingOffer ? 'Sending...' : 'Send Offer 🤝'}
+                </button>
+                <button type="button" onClick={() => setShowOfferModal(false)} style={{ flex: 1, background: '#e2e8f0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* پیمنٹ پاپ اپ */}
       {showTokenModal && (
@@ -751,12 +911,10 @@ const HouseDetails = () => {
         </div>
       )}
 
-      {/* 📄 قانونی کرایہ نامہ پاپ اپ */}
       {showAgreementModal && (
         <RentAgreementModal house={house} onClose={() => setShowAgreementModal(false)} />
       )}
 
-      {/* 💬 لائیو چیٹ پاپ اپ */}
       {showChatModal && (
         <ChatModal
           house={house}

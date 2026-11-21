@@ -1,4 +1,6 @@
 import House from '../models/House.js';
+import Requirement from '../models/Requirement.js';
+import Notification from '../models/Notification.js';
 
 // مددگار فنکشن: مارکیٹ ریٹ موازنہ نکالنے کے لیے
 const computeMarketStats = (rentPrice, avgRent, sampleCount) => {
@@ -67,6 +69,34 @@ export const addHouse = async (req, res) => {
       },
       nearLandmark: nearLandmark || '',
     });
+
+    // 🎯 نیا گھر لسٹ ہوتے ہی میچنگ انتظار کرنے والے یوزرز کو نوٹیفیکیشن بھیجیں
+ try {
+   const effectiveRent = newHouse.isShared && newHouse.pricePerPerson > 0 ? newHouse.pricePerPerson : newHouse.rentPrice;
+   const escapedCity = (city || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+   if (escapedCity && effectiveRent > 0) {
+     const waitingUsers = await Requirement.find({
+       user: { $ne: owner },
+       type: 'need_room',
+       city: { $regex: escapedCity, $options: 'i' },
+       maxBudget: { $gte: effectiveRent },
+     }).limit(10);
+
+     for (const w of waitingUsers) {
+       await Notification.create({
+         user: w.user,
+         sender: owner || null,
+         title: `🎯 New Match in ${newHouse.city}!`,
+         message: `"${newHouse.title}" fits your PKR ${w.maxBudget.toLocaleString()} budget!`,
+         type: 'system',
+         link: `/house/${newHouse._id}`,
+         isRead: false,
+       });
+     }
+   }
+ } catch {
+   // ignore match alert error
+ }
 
     res.status(201).json({ message: 'Ghar kamyabi se list ho gaya hai! 🏠', house: newHouse });
   } catch (error) {

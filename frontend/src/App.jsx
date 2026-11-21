@@ -14,6 +14,8 @@ import Profile from './pages/Profile';
 import Messages from './pages/Messages';
 import Roommates from './pages/Roommates';
 import BillCalculator from './pages/BillCalculator'; // 👈 نیا بجلی کا بل کیلکولیٹر
+import Offers from './pages/Offers';
+
 
 
 
@@ -34,6 +36,8 @@ function App() {
         <Route path="/messages" element={<Messages />} />
         <Route path="/roommates" element={<Roommates />} />
         <Route path="/bill-calculator" element={<BillCalculator />} />
+        <Route path="/offers" element={<Offers />} />
+
 
       </Routes>
     </AuthProvider>

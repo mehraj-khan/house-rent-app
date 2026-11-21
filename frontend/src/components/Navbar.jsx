@@ -16,6 +16,7 @@ import {
   Users,
   Bell,
   CheckCheck,
+  Handshake,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -355,6 +356,19 @@ const Navbar = () => {
                 </span>
               )}
             </button>
+
+            <button
+  onClick={() => handleNavigate('/offers')}
+  style={{
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a',
+    padding: '8px 14px', borderRadius: '10px', cursor: 'pointer',
+    fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap'
+  }}
+>
+  <Handshake size={16} />
+  {lang === 'en' ? 'Offers' : 'آفرز'}
+</button>
 
             {/* Notification Bell */}
             <div ref={notifRef} style={{ position: 'relative' }}>
@@ -757,7 +771,17 @@ const Navbar = () => {
                   </span>
                 )}
               </button>
-
+<button
+  onClick={() => handleNavigate('/offers')}
+  style={{
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+    background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a',
+    padding: '11px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer'
+  }}
+>
+  <Handshake size={18} />
+  {lang === 'en' ? 'Rent Offers ' : 'کرایہ آفرز'}
+</button>
               {/* Mobile Notifications Toggle */}
               <button
                 type="button"

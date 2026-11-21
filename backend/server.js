@@ -12,6 +12,9 @@ import chatRoutes from './routes/chatRoutes.js';
 import requirementRoutes from './routes/requirementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import offerRoutes from './routes/offerRoutes.js';
+import matchRoutes from './routes/matchRoutes.js';
+
 
 
 
@@ -60,6 +63,9 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/requirements', requirementRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/matches', matchRoutes);
+
 
 
 
