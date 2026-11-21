@@ -122,6 +122,14 @@ const Dashboard = () => {
           </div>
         </div>
 
+        <button 
+          className="btn-secondary" 
+          onClick={() => navigate('/bill-calculator')} 
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fefce8', color: '#854d0e', border: '1px solid #fef08a' }}
+        >
+          ⚡ {lang === 'en' ? 'WAPDA Bill Splitter' : 'سب میٹر بل کیلکولیٹر'}
+        </button>
+
         <button className="btn-primary" onClick={() => navigate('/add-house')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <PlusCircle size={16} /> {lang === 'en' ? 'List New House' : 'نیا گھر لسٹ کریں'}
         </button>
