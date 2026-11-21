@@ -11,6 +11,8 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import requirementRoutes from './routes/requirementRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
+
 
 
 
@@ -57,6 +59,8 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/requirements', requirementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai', aiRoutes);
+
 
 
 

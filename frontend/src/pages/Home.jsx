@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   Search, SlidersHorizontal, RotateCcw, Building2, Hotel, Home as HomeIcon, 
-  Map, List, Mic, MicOff, Volume2, GraduationCap, MapPin 
+  Map, List, Mic, MicOff, Volume2, GraduationCap, MapPin, Sparkles, Loader2 
 } from 'lucide-react';
 import HouseCard from '../components/HouseCard.jsx';
 import MapView from '../components/MapView.jsx';
@@ -58,6 +58,8 @@ const Home = () => {
   const [isListening, setIsListening] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState('');
   const [locating, setLocating] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiBanner, setAiBanner] = useState('');
 
   const fetchHouses = async () => {
     try {
@@ -82,6 +84,40 @@ const Home = () => {
   useEffect(() => {
     fetchHouses();
   }, [citySearch, selectedCategory, onlyShared, sharedGender, maxPrice, bedrooms, suitableFor, utilityFilters]);
+
+  // 🤖 AI اسمارٹ سرچ (رومن اردو یا انگلش میں کچھ بھی لکھیں)
+  const handleAiSearch = async () => {
+    if (!citySearch.trim()) {
+      alert(lang === 'en' ? 'Write something first, e.g. "Lahore 25k solar boys room"' : 'پہلے کچھ لکھیں، جیسے "Lahore mein 25k tak solar room"');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/ai/smart-search`, { query: citySearch });
+      const { filters, summary } = res.data;
+
+      setCitySearch(filters.search || '');
+      setMaxPrice(Number(filters.maxPrice) || 150000);
+      setBedrooms(filters.bedrooms || 'all');
+      setSelectedCategory(filters.rentType || 'all');
+      setSuitableFor(filters.suitableFor || 'all');
+      setOnlyShared(Boolean(filters.isShared));
+      setSharedGender(filters.sharedGender || 'all');
+      setUtilityFilters({
+        separateMeter: Boolean(filters.utilities?.separateMeter),
+        solarOrUps: Boolean(filters.utilities?.solarOrUps),
+        suiGas: Boolean(filters.utilities?.suiGas),
+        wifi: Boolean(filters.utilities?.wifi),
+      });
+
+      setAiBanner(summary);
+    } catch (err) {
+      alert('AI Search Error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleNearMe = async () => {
     setLocating(true);
@@ -148,6 +184,7 @@ const Home = () => {
     setMaxPrice(150000);
     setBedrooms('all');
     setSuitableFor('all');
+    setAiBanner('');
     setUtilityFilters({
       separateMeter: false,
       solarOrUps: false,
@@ -163,7 +200,9 @@ const Home = () => {
           {lang === 'en' ? 'Find Stays Across Pakistan' : 'پاکستان بھر میں من پسند رہائش حاصل کریں'}
         </h1>
         <p className="hero-subtitle">
-          {lang === 'en' ? 'Speak any city, society, or area name to find stays.' : 'کسی بھی شہر، سوسائٹی یا علاقے کا نام بول کر فوری تلاش کریں۔'}
+          {lang === 'en'
+            ? 'Try AI Search: e.g. "Lahore 25k solar boys room" or speak any area!'
+            : 'AI سرچ آزمائیں: جیسے "Lahore mein 25k tak solar wala boys room"'}
         </p>
 
         <div className="unified-search-container">
@@ -171,11 +210,35 @@ const Home = () => {
             <Search color="#64748b" size={20} />
             <input
               type="text"
-              placeholder={lang === 'en' ? 'Search any city, area, DHA, Bahria, Gulberg...' : 'کوئی بھی شہر، سوسائٹی، DHA، بحریہ، یا علاقہ سرچ کریں...'}
+              placeholder={lang === 'en' ? 'Try: "Lahore 25k solar room" or search city...' : 'لکھیں: "Lahore mein 25k solar room" یا شہر سرچ کریں...'}
               value={citySearch}
               onChange={(e) => setCitySearch(e.target.value)}
             />
           </div>
+
+          <button
+            type="button"
+            onClick={handleAiSearch}
+            disabled={aiLoading}
+            title="Smart AI Search (Roman Urdu / English)"
+            style={{
+              background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 12px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {aiLoading ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+            <span>AI Search</span>
+          </button>
 
           <button
             type="button"
@@ -219,6 +282,34 @@ const Home = () => {
             <span>Filters</span>
           </button>
         </div>
+
+        {aiBanner && (
+          <div
+            style={{
+              maxWidth: '720px',
+              margin: '12px auto 0',
+              background: 'rgba(124, 58, 237, 0.14)',
+              border: '1px solid rgba(167, 139, 250, 0.5)',
+              color: '#ffffff',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <Sparkles size={15} color="#fde047" />
+            <span><b>AI Applied:</b> {aiBanner}</span>
+            <button
+              type="button"
+              onClick={resetFilters}
+              style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {voiceNotice && (
           <div className="listening-banner">

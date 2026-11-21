@@ -3,7 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { X, Calendar, Clock, Video, Loader2, Users, MapPin } from 'lucide-react';
+import { X, Calendar, Clock, Video, Loader2, Users, MapPin, Sparkles } from 'lucide-react';
 import { uploadToCloudinary } from '../utils/uploadCloudinary';
 import { getLiveLocation } from '../utils/getLiveLocation';
 
@@ -18,6 +18,7 @@ const AddHouse = () => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const [houseData, setHouseData] = useState({
     title: '', 
@@ -50,6 +51,20 @@ const AddHouse = () => {
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
+
+  const handleAiDescription = async () => {
+    setAiGenerating(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/ai/generate-description`, houseData);
+      if (res.data?.description) {
+        setHouseData((prev) => ({ ...prev, description: res.data.description }));
+      }
+    } catch (err) {
+      alert('AI Error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   const handleLiveLocation = async () => {
     setLocating(true);
@@ -301,9 +316,7 @@ const AddHouse = () => {
                     { value: 'any', label: '🤝 Anyone' },
                   ].map((g) => (
                     <button
-                      key={g.value}
-                      type="button"
-                      onClick={() => setHouseData({ ...houseData, sharedGender: g.value })}
+                      key={g.value} type="button" onClick={() => setHouseData({ ...houseData, sharedGender: g.value })}
                       style={{
                         flex: 1, padding: '8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px',
                         border: houseData.sharedGender === g.value ? '2px solid #16a34a' : '1px solid #cbd5e1',
@@ -334,7 +347,6 @@ const AddHouse = () => {
             )}
           </div>
 
-          {/* 📍 Live Location Auto-Fill بٹن */}
           <button
             type="button"
             onClick={handleLiveLocation}
@@ -481,6 +493,24 @@ const AddHouse = () => {
                 />
               </div>
             )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Description:</label>
+            <button
+              type="button"
+              onClick={handleAiDescription}
+              disabled={aiGenerating}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+                color: '#fff', border: 'none', padding: '6px 12px',
+                borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer'
+              }}
+            >
+              {aiGenerating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+              {aiGenerating ? 'Writing...' : '✨ Write Description with AI'}
+            </button>
           </div>
 
           <textarea placeholder="Description..." rows="3" required value={houseData.description} onChange={(e) => setHouseData({ ...houseData, description: e.target.value })}
