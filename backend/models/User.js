@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     role: {
       type: String,
-      enum: ['tenant', 'landlord', 'admin'], // 👈 admin رول شامل کیا
+      enum: ['tenant', 'landlord', 'admin' , 'user'], // 👈 admin رول شامل کیا
       default: 'tenant',
     },
   },

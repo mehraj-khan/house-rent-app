@@ -1,15 +1,18 @@
 import express from 'express';
-import { registerUser, loginUser, googleLogin } from '../controllers/authController.js';
+import { 
+  registerUser, loginUser, googleLogin, updateProfile, 
+  sendVerificationOTP, verifyOTPAndRegister 
+} from '../controllers/authController.js';
 
 const router = express.Router();
 
-// 1. نیا اکاؤنٹ بنانا
 router.post('/register', registerUser);
-
-// 2. عام ای میل اور پاسورڈ سے لاگ ان
 router.post('/login', loginUser);
-
-// 3. گوگل 1-Click لاگ ان
 router.post('/google', googleLogin);
+router.put('/profile', updateProfile);
+
+// 📩 ای میل تصدیق کے راستے
+router.post('/send-otp', sendVerificationOTP);
+router.post('/verify-otp', verifyOTPAndRegister);
 
 export default router;

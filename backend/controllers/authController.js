@@ -2,6 +2,9 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
+import OTP from '../models/OTP.js';
+import { sendOTPEmail } from '../utils/sendEmail.js';
+
 
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -76,7 +79,7 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      role: role || 'landlord',
+      role: role || 'tenant',
     });
 
     // نئے یوزر کے لیے لاگ ان ٹوکن بنائیں
@@ -139,6 +142,87 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// 5. ای میل پر 6 ہندسوں کا OTP بھیجنا
+export const sendVerificationOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required!' });
+    }
+
+    // چیک کریں کہ کیا یہ ای میل پہلے سے رجسٹرڈ تو نہیں
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'This email is already registered! Please login.' });
+    }
+
+    // 6 ہندسوں کا رینڈم کوڈ بنائیں
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // پرانا OTP ڈیلیٹ کر کے نیا سیو کریں
+    await OTP.deleteMany({ email });
+    await OTP.create({ email, otp: otpCode });
+
+    // اصلی جی میل پر کوڈ بھیجیں
+    await sendOTPEmail(email, otpCode);
+
+    res.status(200).json({ message: '6-digit verification code sent to your email!' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 6. کوڈ چیک کرنا اور تصدیق کے بعد اکاؤنٹ بنانا
+export const verifyOTPAndRegister = async (req, res) => {
+  try {
+    const { name, phone, email, password, otp } = req.body;
+
+    // ڈیٹا بیس سے کوڈ چیک کریں
+    const validOTP = await OTP.findOne({ email, otp });
+    if (!validOTP) {
+      return res.status(400).json({ message: 'Invalid or expired verification code!' });
+    }
+
+    // پاسورڈ ہیش کریں
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // تصدیق شدہ اکاؤنٹ بنائیں
+    const newUser = await User.create({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      role: 'user',
+    });
+
+    // استعمال شدہ OTP ڈیلیٹ کر دیں
+    await OTP.deleteMany({ email });
+
+    // ٹوکن جنریٹ کریں
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      message: 'Account verified & created successfully! 🎉',
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // 4. یوزر کی پروفائل اپڈیٹ کرنا (نام اور فون نمبر)
 export const updateProfile = async (req, res) => {
   try {
@@ -149,6 +233,8 @@ export const updateProfile = async (req, res) => {
       { name, phone },
       { new: true }
     ).select('-password');
+
+
 
     if (!user) {
       return res.status(404).json({ message: 'User not found!' });
@@ -164,6 +250,8 @@ export const updateProfile = async (req, res) => {
         role: user.role,
       },
     });
+
+    
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
