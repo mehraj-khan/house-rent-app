@@ -16,6 +16,7 @@ import Roommates from './pages/Roommates';
 import BillCalculator from './pages/BillCalculator'; // 👈 نیا بجلی کا بل کیلکولیٹر
 import Offers from './pages/Offers';
 import ForgotPassword from './pages/ForgotPassword';
+import InstallAppBanner from './components/InstallAppBanner';
 
 
 
@@ -44,6 +45,8 @@ function App() {
 
 
       </Routes>
+        <InstallAppBanner />
+
     </AuthProvider>
   );
 }

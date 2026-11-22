@@ -4,37 +4,39 @@ import { Download, X, Smartphone } from 'lucide-react';
 
 const InstallAppBanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('pwa_dismissed') === '1');
 
   useEffect(() => {
-    // اگر پہلے سے انسٹال شدہ ایپ میں کھلا ہو تو بینر نہ دکھائیں
-    const isStandalone =
+    const standalone =
       window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone) return;
+    setIsStandalone(standalone);
 
-    // Android / Desktop Chrome Install Event
     const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // iPhone / iPad Safari check
-    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-    if (isIos) setShowIosHint(true);
-
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
-  if (dismissed || (!deferredPrompt && !showIosHint)) return null;
+  if (isStandalone || dismissed) return null;
+
+  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      setDeferredPrompt(null);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setIsStandalone(true);
+      }
+    } else {
+      // اگر براؤزر نے خود پاپ اپ نہ دیا ہو (جیسے iPhone یا لوکل ٹیسٹنگ) تو گائیڈ دکھائیں
+      setShowGuide(!showGuide);
     }
   };
 
@@ -58,29 +60,23 @@ const InstallAppBanner = () => {
         borderRadius: '14px',
         boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
         border: '1px solid #334155',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '10px',
         zIndex: 99998,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ background: '#2563eb', padding: '8px', borderRadius: '10px', display: 'flex' }}>
-          <Smartphone size={20} color="#fff" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ background: '#2563eb', padding: '8px', borderRadius: '10px', display: 'flex' }}>
+            <Smartphone size={20} color="#fff" />
+          </div>
+          <div>
+            <b style={{ fontSize: '13px', display: 'block' }}>Install HouseRent PK App</b>
+            <span style={{ fontSize: '11px', color: '#cbd5e1' }}>
+              Mobile app ki tarah home screen par chalayein!
+            </span>
+          </div>
         </div>
-        <div>
-          <b style={{ fontSize: '13px', display: 'block' }}>Install HouseRent PK App</b>
-          <span style={{ fontSize: '11px', color: '#cbd5e1' }}>
-            {deferredPrompt
-              ? 'Fast access from your home screen!'
-              : 'Tap Share (⬆️) → "Add to Home Screen"'}
-          </span>
-        </div>
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {deferredPrompt && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             onClick={handleInstallClick}
             style={{
@@ -95,15 +91,26 @@ const InstallAppBanner = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
+              whiteSpace: 'nowrap',
             }}
           >
             <Download size={14} /> Install
           </button>
-        )}
-        <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}>
-          <X size={18} />
-        </button>
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}>
+            <X size={18} />
+          </button>
+        </div>
       </div>
+
+      {showGuide && (
+        <div style={{ marginTop: '10px', padding: '10px', background: '#1e293b', borderRadius: '8px', fontSize: '12px', color: '#e2e8f0', lineHeight: '1.5' }}>
+          {isIos ? (
+            <>📱 <b>iPhone / Safari:</b> Neeche <b>Share (⬆️)</b> button dabayein → <b>"Add to Home Screen"</b> par click karein!</>
+          ) : (
+            <>📲 <b>Android / Chrome:</b> Upar kone mein <b>⋮ (3 dots)</b> dabayein → <b>"Install app"</b> ya <b>"Add to Home screen"</b> par click karein! <i>(Live HTTPS site par 1-click popup bhi khulta hai)</i></>
+          )}
+        </div>
+      )}
     </div>
   );
 };
