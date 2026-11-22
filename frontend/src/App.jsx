@@ -20,8 +20,6 @@ import InstallAppBanner from './components/InstallAppBanner';
 
 
 
-
-
 function App() {
   return (
     <AuthProvider>
