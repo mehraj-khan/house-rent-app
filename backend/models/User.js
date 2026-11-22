@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
       enum: ['tenant', 'landlord', 'admin' , 'user'], // 👈 admin رول شامل کیا
       default: 'tenant',
     },
+    resetOtp: { type: String, default: null },
+resetOtpExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -3,16 +3,22 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import { Mail, KeyRound, ArrowRight, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
+import { Mail, CheckCircle2, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const API_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://house-rent-app-ten.vercel.app';
 
 const Register = () => {
   const { login, lang } = useAuth();
   const navigate = useNavigate();
 
-  // 1: فارم ڈیٹا | 2: OTP تصدیق مرحلہ
   const [step, setStep] = useState(1); // 1 = فارم | 2 = OTP درج کریں
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -22,20 +28,39 @@ const Register = () => {
     otp: '',
   });
 
-  // مرحلہ 1: 6 ہندسوں کا کوڈ بھیجنا
+  // مرحلہ 1: ویلیڈیشن چیک کرنا اور 6 ہندسوں کا کوڈ بھیجنا
   const handleSendOTP = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setFormError('');
 
+    if (formData.phone.length !== 11) {
+      setFormError(
+        lang === 'en'
+          ? 'Phone number must be exactly 11 digits (e.g. 03001234567).'
+          : 'فون نمبر پورے 11 ہندسوں کا ہونا ضروری ہے (مثال: 03001234567)۔'
+      );
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setFormError(
+        lang === 'en'
+          ? 'Password must be at least 8 characters long.'
+          : 'پاس ورڈ کم از کم 8 حروف یا نمبرز کا ہونا ضروری ہے۔'
+      );
+      return;
+    }
+
+    setLoading(true);
     try {
-      await axios.post('https://house-rent-app-ten.vercel.app/api/auth/send-otp', {
-     email: formData.email,
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
+        email: formData.email,
       });
 
       alert(`Verification code sent to ${formData.email}! Please check your Inbox / Spam folder 📩`);
-      setStep(2); // OTP باکس کھولیں
+      setStep(2);
     } catch (err) {
-      alert('Error: ' + (err.response?.data?.message || err.message));
+      setFormError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -44,16 +69,17 @@ const Register = () => {
   // مرحلہ 2: کوڈ کی تصدیق اور اکاؤنٹ بنانا
   const handleVerifyAndRegister = async (e) => {
     e.preventDefault();
+    setFormError('');
     setLoading(true);
 
     try {
-      const res = await axios.post('https://house-rent-app-ten.vercel.app/api/auth/verify-otp', formData);
+      const res = await axios.post(`${API_URL}/api/auth/verify-otp`, formData);
 
       login(res.data.user, res.data.token);
       alert(`Email verified! Welcome to HouseRent PK, ${res.data.user.name} 🎉`);
       navigate('/');
     } catch (err) {
-      alert('Verification Failed: ' + (err.response?.data?.message || 'Invalid OTP code'));
+      setFormError(err.response?.data?.message || 'Invalid OTP code');
     } finally {
       setLoading(false);
     }
@@ -62,7 +88,7 @@ const Register = () => {
   // گوگل 1-Click سائن اپ
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await axios.post('https://house-rent-app-ten.vercel.app/api/auth/google', {
+      const res = await axios.post(`${API_URL}/api/auth/google`, {
         credential: credentialResponse.credential,
       });
 
@@ -86,7 +112,13 @@ const Register = () => {
             : `Enter the 6-digit code sent to ${formData.email}`}
         </p>
 
-        {/* 🌟 گوگل سائن اپ (صرف پہلے مرحلے پر دکھے گا) */}
+        {formError && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', marginBottom: '14px' }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{formError}</span>
+          </div>
+        )}
+
         {step === 1 && (
           <>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
@@ -107,40 +139,92 @@ const Register = () => {
           </>
         )}
 
-        {/* ========================================================
-           حالت 1: فارم بھرنا
-           ======================================================== */}
         {step === 1 ? (
           <form onSubmit={handleSendOTP}>
             <input
-              type="text" placeholder="Full Name" required
-              value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              type="text"
+              placeholder="Full Name"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
             />
+
+            {/* 📱 پورا 11 ہندسوں کا فون نمبر */}
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={11}
+                placeholder="Phone Number (11 digits e.g. 03001234567)"
+                required
+                value={formData.phone}
+                onChange={(e) => {
+                  const onlyNums = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setFormData({ ...formData, phone: onlyNums });
+                  if (formError) setFormError('');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: formData.phone.length > 0 && formData.phone.length !== 11 ? '1.5px solid #f59e0b' : '1px solid #cbd5e1',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: '11px', color: formData.phone.length === 11 ? '#16a34a' : '#64748b', marginTop: '3px', textAlign: 'end' }}>
+                {formData.phone.length}/11 digits {formData.phone.length === 11 ? '✅' : ''}
+              </div>
+            </div>
+
             <input
-              type="text" placeholder="Phone Number (e.g. 03001234567)" required
-              value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              type="email"
+              placeholder="Real Email Address"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
             />
-            <input
-              type="email" placeholder="Real Email Address" required
-              value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
-            <input
-              type="password" placeholder="Create Password" required
-              value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              style={{ width: '100%', padding: '10px', marginBottom: '18px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-            />
+
+            {/* 🔒 کم از کم 8 حروف کا پاس ورڈ + Eye Toggle */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  minLength={8}
+                  placeholder="Create Password (min 8 characters)"
+                  required
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (formError) setFormError('');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 38px 10px 10px',
+                    borderRadius: '6px',
+                    border: formData.password.length > 0 && formData.password.length < 8 ? '1.5px solid #f59e0b' : '1px solid #cbd5e1',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <div style={{ fontSize: '11px', color: formData.password.length >= 8 ? '#16a34a' : '#64748b', marginTop: '3px' }}>
+                {formData.password.length >= 8 ? 'Strong length (8+ chars) ✅' : `Minimum 8 characters (${formData.password.length}/8)`}
+              </div>
+            </div>
 
             <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               {loading ? <><Loader2 size={16} className="spin" /> Sending Verification Code...</> : <><Mail size={16} /> Send 6-Digit Code 📩</>}
             </button>
           </form>
         ) : (
-          /* ========================================================
-             حالت 2: 6 ہندسوں کا کوڈ درج کرنا
-             ======================================================== */
           <form onSubmit={handleVerifyAndRegister}>
             <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'center', marginBottom: '18px' }}>
               <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e40af', display: 'block', marginBottom: '8px' }}>
@@ -152,7 +236,7 @@ const Register = () => {
                 placeholder="482910"
                 required
                 value={formData.otp}
-                onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
                 style={{ width: '100%', maxWidth: '200px', padding: '12px', textAlign: 'center', fontSize: '24px', letterSpacing: '6px', fontWeight: 'bold', borderRadius: '8px', border: '2px solid #2563eb', outline: 'none' }}
               />
               <p style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
@@ -174,7 +258,7 @@ const Register = () => {
           </form>
         )}
 
-        <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
+       <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
           Already have an account?{' '}
           <Link to="/login" style={{ color: '#2563eb', fontWeight: 'bold' }}>
             Log In
