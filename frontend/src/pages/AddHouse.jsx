@@ -21,21 +21,21 @@ const AddHouse = () => {
   const [aiGenerating, setAiGenerating] = useState(false);
 
   const [houseData, setHouseData] = useState({
-    title: '', 
-    description: '', 
-    city: '', 
-    address: '', 
-    bedrooms: '', 
+    title: '',
+    description: '',
+    city: '',
+    address: '',
+    bedrooms: '',
     bathrooms: '',
-    rentPrice: '', 
-    pricePerDay: '', 
+    rentPrice: '',
+    pricePerDay: '',
     pricePerYear: '',
     availableFor: ['monthly', 'daily'],
     suitableFor: 'both',
     isShared: false,
     totalBeds: 2,
     sharedGender: 'boys',
-    availableFrom: '', 
+    availableFrom: '',
     availableTo: '',
     videoUrl: '',
     images: [],
@@ -95,9 +95,9 @@ const AddHouse = () => {
         uploadedUrls.push(url);
       }
 
-      setHouseData(prev => ({
+      setHouseData((prev) => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls]
+        images: [...prev.images, ...uploadedUrls],
       }));
     } catch (err) {
       alert('Upload Error: ' + err.message);
@@ -107,7 +107,10 @@ const AddHouse = () => {
   };
 
   const removeImage = (indexToRemove) => {
-    setHouseData(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== indexToRemove) }));
+    setHouseData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove),
+    }));
   };
 
   const handleVideoUpload = async (e) => {
@@ -124,7 +127,7 @@ const AddHouse = () => {
       const videoUrl = await uploadToCloudinary(file, 'video', (percent) => {
         setUploadProgress(percent);
       });
-      setHouseData(prev => ({ ...prev, videoUrl }));
+      setHouseData((prev) => ({ ...prev, videoUrl }));
       alert('Video uploaded successfully to Cloud! 🎥✅');
     } catch (err) {
       alert('Video Upload Error: ' + err.message);
@@ -134,16 +137,21 @@ const AddHouse = () => {
   };
 
   const toggleAvailableFor = (type) => {
-    setHouseData(prev => {
+    setHouseData((prev) => {
       const exists = prev.availableFor.includes(type);
-      return { ...prev, availableFor: exists ? prev.availableFor.filter(t => t !== type) : [...prev.availableFor, type] };
+      return {
+        ...prev,
+        availableFor: exists
+          ? prev.availableFor.filter((t) => t !== type)
+          : [...prev.availableFor, type],
+      };
     });
   };
 
   const toggleUtility = (key) => {
-    setHouseData(prev => ({
+    setHouseData((prev) => ({
       ...prev,
-      utilities: { ...prev.utilities, [key]: !prev.utilities[key] }
+      utilities: { ...prev.utilities, [key]: !prev.utilities[key] },
     }));
   };
 
@@ -189,101 +197,399 @@ const AddHouse = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '650px', marginTop: '30px' }}>
-      <div className="house-card" style={{ padding: '30px' }}>
-        <h2 style={{ marginBottom: '15px' }}>List Property with Video & Cloud Storage 🏠</h2>
+    <div className="ah-wrapper">
+      <style>{`
+        .ah-wrapper {
+          width: 100%;
+          max-width: 680px;
+          margin: 24px auto 80px;
+          padding: 0 16px;
+          box-sizing: border-box;
+        }
+        .ah-wrapper *, .ah-wrapper *::before, .ah-wrapper *::after {
+          box-sizing: border-box;
+        }
+        .ah-card {
+          padding: 28px;
+          border-radius: 14px;
+        }
+        .ah-title {
+          margin: 0 0 18px;
+          font-size: 22px;
+          line-height: 1.3;
+          color: #0f172a;
+        }
+        .ah-input {
+          width: 100%;
+          padding: 11px 12px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          font-size: 16px;
+          background: #ffffff;
+          color: #0f172a;
+          outline: none;
+        }
+        .ah-input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .ah-box {
+          padding: 15px;
+          border-radius: 10px;
+          margin-bottom: 14px;
+        }
+        .ah-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .ah-grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+        }
+        .ah-pill-btn {
+          padding: 9px 10px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 13px;
+          min-height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          transition: all 0.15s ease;
+        }
+        .ah-utilities-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .ah-images-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+          gap: 8px;
+          margin-top: 10px;
+        }
+        .ah-video-frame {
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          border: none;
+          border-radius: 8px;
+          background: #000;
+          display: block;
+        }
+        .ah-desc-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .ah-submit-btn {
+          width: 100%;
+          padding: 13px 16px;
+          min-height: 48px;
+          font-size: 16px;
+          font-weight: 700;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+        @keyframes ah-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .ah-wrapper .spin {
+          animation: ah-spin 1s linear infinite;
+        }
+
+        @media (max-width: 520px) {
+          .ah-wrapper {
+            margin: 14px auto 76px;
+            padding: 0 12px;
+          }
+          .ah-card {
+            padding: 16px;
+          }
+          .ah-title {
+            font-size: 18px;
+            margin-bottom: 14px;
+          }
+          .ah-grid-2 {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          .ah-grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+          }
+          .ah-pill-btn {
+            font-size: 12px;
+            padding: 8px 6px;
+          }
+        }
+      `}</style>
+
+      <div className="house-card ah-card">
+        <h2 className="ah-title">List Property with Video &amp; Cloud Storage 🏠</h2>
 
         {uploadProgress !== null && (
-          <div style={{ background: '#eff6ff', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #bfdbfe' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+          <div
+            style={{
+              background: '#eff6ff',
+              color: '#1e40af',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              marginBottom: '14px',
+              border: '1px solid #bfdbfe',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '6px',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Loader2 className="spin" size={16} /> Fast Cloud Uploading...
               </span>
               <span>{uploadProgress}%</span>
             </div>
-            <div style={{ width: '100%', height: '8px', background: '#dbeafe', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s ease' }}></div>
+            <div
+              style={{
+                width: '100%',
+                height: '8px',
+                background: '#dbeafe',
+                borderRadius: '4px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  background: '#2563eb',
+                  transition: 'width 0.2s ease',
+                }}
+              />
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <input type="text" placeholder="Title (e.g. 2-Bed Luxury Suite / Shared Student Room)" required
-            value={houseData.title} onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
-            style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+          <input
+            type="text"
+            placeholder="Title (e.g. 2-Bed Luxury Suite / Shared Student Room)"
+            required
+            value={houseData.title}
+            onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
+            className="ah-input"
+            style={{ marginBottom: '12px' }}
+          />
 
-          <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1.5px solid #bfdbfe', marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <Clock size={16} /> When is this space available?
+          {/* Availability Dates */}
+          <div
+            className="ah-box"
+            style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe' }}
+          >
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#1e40af',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '10px',
+              }}
+            >
+              <Clock size={16} style={{ flexShrink: 0 }} /> When is this space available?
             </label>
 
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '140px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
+            <div className="ah-grid-2" style={{ marginBottom: 0 }}>
+              <div style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    color: '#475569',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
+                >
                   AVAILABLE FROM:
                 </label>
                 <input
-                  type="date" min={todayStr} value={houseData.availableFrom}
-                  onChange={(e) => setHouseData({ ...houseData, availableFrom: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                  type="date"
+                  min={todayStr}
+                  value={houseData.availableFrom}
+                  onChange={(e) =>
+                    setHouseData({ ...houseData, availableFrom: e.target.value })
+                  }
+                  className="ah-input"
+                  style={{ padding: '9px 10px' }}
                 />
               </div>
 
-              <div style={{ flex: 1, minWidth: '140px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <div style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    color: '#475569',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
+                >
                   AVAILABLE TO (Optional):
                 </label>
                 <input
-                  type="date" min={houseData.availableFrom || todayStr} value={houseData.availableTo}
-                  onChange={(e) => setHouseData({ ...houseData, availableTo: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                  type="date"
+                  min={houseData.availableFrom || todayStr}
+                  value={houseData.availableTo}
+                  onChange={(e) =>
+                    setHouseData({ ...houseData, availableTo: e.target.value })
+                  }
+                  className="ah-input"
+                  style={{ padding: '9px 10px' }}
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-              <Calendar size={15} style={{ verticalAlign: 'middle', marginInlineEnd: '4px' }} />
-              Rental Rates:
+          {/* Rental Rates */}
+          <div
+            className="ah-box"
+            style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+          >
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#1e293b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '10px',
+              }}
+            >
+              <Calendar size={15} /> Rental Rates:
             </label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-              {['daily', 'monthly', 'yearly'].map(type => (
-                <button key={type} type="button" onClick={() => toggleAvailableFor(type)}
-                  style={{ padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', border: houseData.availableFor.includes(type) ? '2px solid #2563eb' : '1px solid #cbd5e1', background: houseData.availableFor.includes(type) ? '#eff6ff' : '#fff', color: houseData.availableFor.includes(type) ? '#2563eb' : '#64748b', textTransform: 'capitalize' }}>
-                  ✓ {type}
-                </button>
-              ))}
+
+            <div className="ah-grid-3" style={{ marginBottom: '10px' }}>
+              {['daily', 'monthly', 'yearly'].map((type) => {
+                const selected = houseData.availableFor.includes(type);
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => toggleAvailableFor(type)}
+                    className="ah-pill-btn"
+                    style={{
+                      border: selected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: selected ? '#eff6ff' : '#fff',
+                      color: selected ? '#2563eb' : '#64748b',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    ✓ {type}
+                  </button>
+                );
+              })}
             </div>
 
             {houseData.availableFor.includes('daily') && (
-              <input type="number" placeholder="Daily Rate (PKR/night)" required
-                value={houseData.pricePerDay} onChange={(e) => setHouseData({ ...houseData, pricePerDay: e.target.value })}
-                style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input
+                type="number"
+                placeholder="Daily Rate (PKR/night)"
+                required
+                value={houseData.pricePerDay}
+                onChange={(e) =>
+                  setHouseData({ ...houseData, pricePerDay: e.target.value })
+                }
+                className="ah-input"
+                style={{ marginBottom: '8px' }}
+              />
             )}
             {houseData.availableFor.includes('monthly') && (
-              <input type="number" placeholder="Monthly Rent (PKR/month)" required
-                value={houseData.rentPrice} onChange={(e) => setHouseData({ ...houseData, rentPrice: e.target.value })}
-                style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input
+                type="number"
+                placeholder="Monthly Rent (PKR/month)"
+                required
+                value={houseData.rentPrice}
+                onChange={(e) =>
+                  setHouseData({ ...houseData, rentPrice: e.target.value })
+                }
+                className="ah-input"
+                style={{ marginBottom: '8px' }}
+              />
             )}
             {houseData.availableFor.includes('yearly') && (
-              <input type="number" placeholder="Yearly Total in PKR (Optional)"
-                value={houseData.pricePerYear} onChange={(e) => setHouseData({ ...houseData, pricePerYear: e.target.value })}
-                style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input
+                type="number"
+                placeholder="Yearly Total in PKR (Optional)"
+                value={houseData.pricePerYear}
+                onChange={(e) =>
+                  setHouseData({ ...houseData, pricePerYear: e.target.value })
+                }
+                className="ah-input"
+              />
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-            {['family', 'bachelors', 'both'].map(s => (
-              <button key={s} type="button" onClick={() => setHouseData({ ...houseData, suitableFor: s })}
-                style={{ flex: 1, padding: '8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', border: houseData.suitableFor === s ? '2px solid #2563eb' : '1px solid #cbd5e1', background: houseData.suitableFor === s ? '#eff6ff' : '#fff', color: houseData.suitableFor === s ? '#2563eb' : '#64748b', textTransform: 'capitalize' }}>
-                {s === 'family' ? '👨‍👩‍👧‍👦 Family' : s === 'bachelors' ? '👤 Bachelors' : '🤝 Both'}
-              </button>
-            ))}
+          {/* Suitable For */}
+          <div className="ah-grid-3" style={{ marginBottom: '14px' }}>
+            {['family', 'bachelors', 'both'].map((s) => {
+              const active = houseData.suitableFor === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setHouseData({ ...houseData, suitableFor: s })}
+                  className="ah-pill-btn"
+                  style={{
+                    border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                    background: active ? '#eff6ff' : '#fff',
+                    color: active ? '#2563eb' : '#64748b',
+                  }}
+                >
+                  {s === 'family'
+                    ? '👨‍👩‍👧‍👦 Family'
+                    : s === 'bachelors'
+                      ? '👤 Bachelors'
+                      : '🤝 Both'}
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ background: houseData.isShared ? '#f0fdf4' : '#f8fafc', padding: '15px', borderRadius: '10px', border: houseData.isShared ? '1.5px solid #22c55e' : '1px solid #cbd5e1', marginBottom: '15px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', color: '#0f172a' }}>
+          {/* Shared Room / Hostel */}
+          <div
+            className="ah-box"
+            style={{
+              background: houseData.isShared ? '#f0fdf4' : '#f8fafc',
+              border: houseData.isShared ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
+            }}
+          >
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                color: '#0f172a',
+                lineHeight: '1.4',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={houseData.isShared}
@@ -291,12 +597,21 @@ const AddHouse = () => {
                   setHouseData((prev) => ({
                     ...prev,
                     isShared: e.target.checked,
-                    suitableFor: e.target.checked && prev.suitableFor === 'family' ? 'bachelors' : prev.suitableFor,
+                    suitableFor:
+                      e.target.checked && prev.suitableFor === 'family'
+                        ? 'bachelors'
+                        : prev.suitableFor,
                   }))
                 }
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  marginTop: '2px',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                }}
               />
-              <Users size={18} color="#16a34a" />
+              <Users size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>
                 {lang === 'en'
                   ? '🎓 Allow Shared Room / Hostel / Roommates (Split Rent)'
@@ -305,91 +620,233 @@ const AddHouse = () => {
             </label>
 
             {houseData.isShared && (
-              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #bbf7d0' }}>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+              <div
+                style={{
+                  marginTop: '14px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #bbf7d0',
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: '#166534',
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
                   Sharing Preference:
                 </label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <div className="ah-grid-3" style={{ marginBottom: '12px' }}>
                   {[
                     { value: 'boys', label: '👨 Boys / Male' },
                     { value: 'girls', label: '👩 Girls / Female' },
                     { value: 'any', label: '🤝 Anyone' },
-                  ].map((g) => (
-                    <button
-                      key={g.value} type="button" onClick={() => setHouseData({ ...houseData, sharedGender: g.value })}
-                      style={{
-                        flex: 1, padding: '8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px',
-                        border: houseData.sharedGender === g.value ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                        background: houseData.sharedGender === g.value ? '#dcfce7' : '#fff',
-                        color: houseData.sharedGender === g.value ? '#15803d' : '#64748b',
-                      }}
-                    >
-                      {g.label}
-                    </button>
-                  ))}
+                  ].map((g) => {
+                    const active = houseData.sharedGender === g.value;
+                    return (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() =>
+                          setHouseData({ ...houseData, sharedGender: g.value })
+                        }
+                        className="ah-pill-btn"
+                        style={{
+                          border: active ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                          background: active ? '#dcfce7' : '#fff',
+                          color: active ? '#15803d' : '#64748b',
+                        }}
+                      >
+                        {g.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: '#166534',
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
                   Split Rent Between (Total Persons):
                 </label>
                 <input
-                  type="number" min="2" max="10" value={houseData.totalBeds}
-                  onChange={(e) => setHouseData({ ...houseData, totalBeds: e.target.value })}
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '14px' }}
+                  type="number"
+                  min="2"
+                  max="10"
+                  value={houseData.totalBeds}
+                  onChange={(e) =>
+                    setHouseData({ ...houseData, totalBeds: e.target.value })
+                  }
+                  className="ah-input"
+                  style={{ borderColor: '#86efac' }}
                 />
 
                 {splitRentPerPerson > 0 && (
-                  <div style={{ marginTop: '10px', background: '#dcfce7', color: '#14532d', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                    💡 Auto Split Rent: PKR {splitRentPerPerson.toLocaleString()} / person per month ({houseData.totalBeds} roommates)
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      background: '#dcfce7',
+                      color: '#14532d',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      lineHeight: '1.4',
+                    }}
+                  >
+                    💡 Auto Split Rent: PKR {splitRentPerPerson.toLocaleString()} / person
+                    per month ({houseData.totalBeds} roommates)
                   </div>
                 )}
               </div>
             )}
           </div>
 
+          {/* Live Location */}
           <button
             type="button"
             onClick={handleLiveLocation}
             disabled={locating}
             style={{
-              width: '100%', padding: '9px 12px', marginBottom: '10px', borderRadius: '8px',
-              border: '1.5px solid #2563eb', background: '#eff6ff', color: '#1d4ed8',
-              fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              width: '100%',
+              padding: '11px 12px',
+              marginBottom: '12px',
+              borderRadius: '8px',
+              border: '1.5px solid #2563eb',
+              background: '#eff6ff',
+              color: '#1d4ed8',
+              fontWeight: 'bold',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minHeight: '42px',
+              textAlign: 'center',
             }}
           >
-            <MapPin size={16} />
-            {locating ? 'Detecting Live Location...' : '📍 Use My Live Location (Auto-Fill City & Address)'}
+            <MapPin size={16} style={{ flexShrink: 0 }} />
+            <span>
+              {locating
+                ? 'Detecting Live Location...'
+                : '📍 Use My Live Location (Auto-Fill City & Address)'}
+            </span>
           </button>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input type="text" placeholder="City" required value={houseData.city} onChange={(e) => setHouseData({ ...houseData, city: e.target.value })}
-              style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-            <input type="text" placeholder="Address" required value={houseData.address} onChange={(e) => setHouseData({ ...houseData, address: e.target.value })}
-              style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+          {/* City & Address */}
+          <div className="ah-grid-2">
+            <input
+              type="text"
+              placeholder="City"
+              required
+              value={houseData.city}
+              onChange={(e) => setHouseData({ ...houseData, city: e.target.value })}
+              className="ah-input"
+            />
+            <input
+              type="text"
+              placeholder="Address"
+              required
+              value={houseData.address}
+              onChange={(e) => setHouseData({ ...houseData, address: e.target.value })}
+              className="ah-input"
+            />
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input type="number" placeholder="Bedrooms" required value={houseData.bedrooms} onChange={(e) => setHouseData({ ...houseData, bedrooms: e.target.value })}
-              style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-            <input type="number" placeholder="Bathrooms" required value={houseData.bathrooms} onChange={(e) => setHouseData({ ...houseData, bathrooms: e.target.value })}
-              style={{ flex: 1, padding: '10px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+          {/* Bedrooms & Bathrooms */}
+          <div className="ah-grid-2">
+            <input
+              type="number"
+              placeholder="Bedrooms"
+              required
+              value={houseData.bedrooms}
+              onChange={(e) => setHouseData({ ...houseData, bedrooms: e.target.value })}
+              className="ah-input"
+            />
+            <input
+              type="number"
+              placeholder="Bathrooms"
+              required
+              value={houseData.bathrooms}
+              onChange={(e) => setHouseData({ ...houseData, bathrooms: e.target.value })}
+              className="ah-input"
+            />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>
+          {/* Photos Upload */}
+          <div style={{ marginBottom: '14px' }}>
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#475569',
+                display: 'block',
+                marginBottom: '6px',
+              }}
+            >
               Photos (Fast Cloud Upload):
             </label>
-            <input type="file" accept="image/*" multiple onChange={handleMultipleImages} disabled={uploadProgress !== null}
-              style={{ padding: '8px', border: '1.5px dashed #2563eb', background: '#eff6ff', width: '100%', borderRadius: '6px', cursor: 'pointer' }} />
-            
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleMultipleImages}
+              disabled={uploadProgress !== null}
+              style={{
+                padding: '10px',
+                border: '1.5px dashed #2563eb',
+                background: '#eff6ff',
+                width: '100%',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}
+            />
+
             {houseData.images.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '10px' }}>
+              <div className="ah-images-grid">
                 {houseData.images.map((img, index) => (
                   <div key={index} style={{ position: 'relative' }}>
-                    <img src={img} alt={`Preview ${index}`} style={{ width: '100%', height: '70px', objectFit: 'cover', borderRadius: '6px' }} />
-                    <button type="button" onClick={() => removeImage(index)} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(220, 38, 38, 0.85)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      <X size={10} />
+                    <img
+                      src={img}
+                      alt={`Preview ${index}`}
+                      style={{
+                        width: '100%',
+                        height: '76px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        display: 'block',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      aria-label="Remove image"
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: 'rgba(220, 38, 38, 0.9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={13} />
                     </button>
                   </div>
                 ))}
@@ -397,12 +854,25 @@ const AddHouse = () => {
             )}
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '10px', border: '1px solid #cbd5e1', marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', display: 'block', marginBottom: '10px' }}>
-              ⚡ Utilities & Facilities (سچائی بتائیں — یوزرز کا اعتماد بڑھتا ہے):
+          {/* Utilities */}
+          <div
+            className="ah-box"
+            style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}
+          >
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#0f172a',
+                display: 'block',
+                marginBottom: '10px',
+                lineHeight: '1.4',
+              }}
+            >
+              ⚡ Utilities &amp; Facilities (سچائی بتائیں — یوزرز کا اعتماد بڑھتا ہے):
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+            <div className="ah-utilities-grid">
               {[
                 { key: 'separateMeter', label: '⚡ Separate Bijli Meter' },
                 { key: 'solarOrUps', label: '☀️ Solar / UPS Backup' },
@@ -414,15 +884,24 @@ const AddHouse = () => {
                 const active = houseData.utilities[u.key];
                 return (
                   <button
-                    key={u.key} type="button" onClick={() => toggleUtility(u.key)}
+                    key={u.key}
+                    type="button"
+                    onClick={() => toggleUtility(u.key)}
                     style={{
-                      padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', textAlign: 'left',
+                      padding: '10px 10px',
+                      minHeight: '40px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      textAlign: 'left',
                       border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
                       background: active ? '#eff6ff' : '#ffffff',
                       color: active ? '#1d4ed8' : '#475569',
                     }}
                   >
-                    {active ? '✅ ' : ''}{u.label}
+                    {active ? '✅ ' : ''}
+                    {u.label}
                   </button>
                 );
               })}
@@ -430,44 +909,93 @@ const AddHouse = () => {
 
             <input
               type="text"
-              placeholder="📍 Nearby University / Metro / Landmark (e.g. 5 min from FAST / Metro Station)"
+              placeholder="📍 Nearby University / Metro / Landmark (e.g. 5 min from FAST)"
               value={houseData.nearLandmark}
-              onChange={(e) => setHouseData({ ...houseData, nearLandmark: e.target.value })}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              onChange={(e) =>
+                setHouseData({ ...houseData, nearLandmark: e.target.value })
+              }
+              className="ah-input"
             />
           </div>
 
-          <div style={{ marginBottom: '18px', background: '#fef2f2', padding: '16px', borderRadius: '10px', border: '1.5px dashed #f87171' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <Video size={18} color="#dc2626" />
-              Property Video Walkthrough (Choose File OR Paste Video Link):
+          {/* Video Walkthrough */}
+          <div
+            className="ah-box"
+            style={{
+              background: '#fef2f2',
+              border: '1.5px dashed #f87171',
+              marginBottom: '16px',
+            }}
+          >
+            <label
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#991b1b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '10px',
+                lineHeight: '1.4',
+              }}
+            >
+              <Video size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span>Property Video Walkthrough (Choose File OR Paste Video Link):</span>
             </label>
 
             {houseData.videoUrl ? (
-              <div style={{ marginTop: '10px', position: 'relative', background: '#000', borderRadius: '8px', padding: '10px' }}>
-                <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 6px' }}>Selected Video Preview:</p>
+              <div
+                style={{
+                  marginTop: '10px',
+                  position: 'relative',
+                  background: '#000',
+                  borderRadius: '10px',
+                  padding: '10px',
+                }}
+              >
+                <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 8px' }}>
+                  Selected Video Preview:
+                </p>
 
                 {houseData.videoUrl.includes('youtu') ? (
                   <iframe
+                    title="Property video preview"
+                    allowFullScreen
                     src={
                       houseData.videoUrl.includes('youtu.be')
                         ? `https://www.youtube.com/embed/${houseData.videoUrl.split('/').pop().split('?')[0]}`
                         : houseData.videoUrl.includes('shorts')
-                        ? `https://www.youtube.com/embed/${houseData.videoUrl.split('shorts/')[1]?.split('?')[0]}`
-                        : `https://www.youtube.com/embed/${houseData.videoUrl.split('watch?v=')[1]?.split('&')[0]}`
+                          ? `https://www.youtube.com/embed/${houseData.videoUrl.split('shorts/')[1]?.split('?')[0]}`
+                          : `https://www.youtube.com/embed/${houseData.videoUrl.split('watch?v=')[1]?.split('&')[0]}`
                     }
-                    style={{ width: '100%', height: '180px', border: 'none', borderRadius: '6px' }}
+                    className="ah-video-frame"
                   />
                 ) : (
-                  <video src={houseData.videoUrl} controls style={{ width: '100%', maxHeight: '180px', borderRadius: '6px', background: '#000' }} />
+                  <video
+                    src={houseData.videoUrl}
+                    controls
+                    className="ah-video-frame"
+                  />
                 )}
 
                 <button
-                  type="button" onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
+                  type="button"
+                  onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
                   style={{
-                    width: '100%', marginTop: '8px', padding: '8px', background: '#dc2626', color: 'white',
-                    border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                    width: '100%',
+                    marginTop: '8px',
+                    padding: '10px',
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
                   <X size={15} /> Remove Video (ویڈیو ہٹائیں)
@@ -476,47 +1004,100 @@ const AddHouse = () => {
             ) : (
               <div>
                 <input
-                  type="file" accept="video/*" onChange={handleVideoUpload} disabled={uploadProgress !== null}
-                  style={{ padding: '8px', background: '#ffffff', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  disabled={uploadProgress !== null}
+                  style={{
+                    padding: '10px',
+                    background: '#ffffff',
+                    width: '100%',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
                 />
-                
-                <div style={{ margin: '10px 0 6px', fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }}></span>
-                  <span>OR PASTE VIDEO LINK (YouTube / Shorts / Reels)</span>
-                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }}></span>
+
+                <div
+                  style={{
+                    margin: '12px 0 8px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    color: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }} />
+                  <span>OR PASTE VIDEO LINK (YouTube / Shorts)</span>
+                  <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }} />
                 </div>
 
                 <input
-                  type="text" placeholder="https://youtu.be/... or ..." value={houseData.videoUrl}
-                  onChange={(e) => setHouseData({ ...houseData, videoUrl: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  type="text"
+                  placeholder="https://youtu.be/... or ..."
+                  value={houseData.videoUrl}
+                  onChange={(e) =>
+                    setHouseData({ ...houseData, videoUrl: e.target.value })
+                  }
+                  className="ah-input"
                 />
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Description:</label>
+          {/* Description + AI */}
+          <div className="ah-desc-header">
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>
+              Description:
+            </label>
             <button
               type="button"
               onClick={handleAiDescription}
               disabled={aiGenerating}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
                 background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
-                color: '#fff', border: 'none', padding: '6px 12px',
-                borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer'
+                color: '#fff',
+                border: 'none',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
               }}
             >
-              {aiGenerating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+              {aiGenerating ? (
+                <Loader2 size={14} className="spin" />
+              ) : (
+                <Sparkles size={14} />
+              )}
               {aiGenerating ? 'Writing...' : '✨ Write Description with AI'}
             </button>
           </div>
 
-          <textarea placeholder="Description..." rows="3" required value={houseData.description} onChange={(e) => setHouseData({ ...houseData, description: e.target.value })}
-            style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #cbd5e1' }}></textarea>
+          <textarea
+            placeholder="Description..."
+            rows="3"
+            required
+            value={houseData.description}
+            onChange={(e) =>
+              setHouseData({ ...houseData, description: e.target.value })
+            }
+            className="ah-input"
+            style={{ marginBottom: '16px', resize: 'vertical' }}
+          />
 
-          <button type="submit" className="btn-primary" disabled={loading || uploadProgress !== null} style={{ width: '100%', padding: '12px' }}>
+          <button
+            type="submit"
+            className="btn-primary ah-submit-btn"
+            disabled={loading || uploadProgress !== null}
+          >
             {loading ? 'Publishing...' : 'Publish Property to Cloud'}
           </button>
         </form>

@@ -689,3 +689,31 @@ body {
     display: none !important;
   }
 }
+
+@media (max-width: 640px) {
+  .unified-search-container {
+    border-radius: 16px !important;
+  }
+
+  .unified-input-group {
+    flex: 1 1 100% !important;
+    width: 100%;
+  }
+
+  .search-actions-row {
+    width: 100%;
+    justify-content: space-between !important;
+  }
+
+  .unified-divider {
+    display: none !important;
+  }
+
+  .houses-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn-floating-map {
+    bottom: 84px !important; /* Install banner ke upar rahe */
+  }
+}

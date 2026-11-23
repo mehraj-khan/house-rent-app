@@ -14,6 +14,8 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import offerRoutes from './routes/offerRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
+import tenantRequestRoutes from './routes/tenantRequestRoutes.js'; // 👈 نئی لائن
+
 
 
 
@@ -65,7 +67,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/matches', matchRoutes);
-
+app.use('/api/tenant-requests', tenantRequestRoutes); // 👈 نئی لائن
 
 
 

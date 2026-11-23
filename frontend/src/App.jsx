@@ -17,6 +17,9 @@ import BillCalculator from './pages/BillCalculator'; // 👈 نیا بجلی ک�
 import Offers from './pages/Offers';
 import ForgotPassword from './pages/ForgotPassword';
 import InstallAppBanner from './components/InstallAppBanner';
+import PostTenantRequest from './pages/PostTenantRequest';
+import TenantRequestsFeed from './pages/TenantRequestsFeed';
+
 
 
 
@@ -39,6 +42,8 @@ function App() {
         <Route path="/bill-calculator" element={<BillCalculator />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/wanted" element={<TenantRequestsFeed />} />
+        <Route path="/post-request" element={<PostTenantRequest />} />
 
 
 

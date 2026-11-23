@@ -9,6 +9,9 @@ import HouseCard from '../components/HouseCard.jsx';
 import MapView from '../components/MapView.jsx';
 import { useAuth } from '../context/AuthContext';
 import { getLiveLocation } from '../utils/getLiveLocation';
+import { useNavigate } from 'react-router-dom';
+
+
 
 const API_URL =
   window.location.hostname === 'localhost'
@@ -35,6 +38,9 @@ const commonUrduWords = {
 };
 
 const Home = () => {
+
+  const navigate = useNavigate();
+
   const [houses, setHouses] = useState([]);
   const { lang } = useAuth();
 
@@ -85,7 +91,6 @@ const Home = () => {
     fetchHouses();
   }, [citySearch, selectedCategory, onlyShared, sharedGender, maxPrice, bedrooms, suitableFor, utilityFilters]);
 
-  // 🤖 AI اسمارٹ سرچ (رومن اردو یا انگلش میں کچھ بھی لکھیں)
   const handleAiSearch = async () => {
     if (!citySearch.trim()) {
       alert(lang === 'en' ? 'Write something first, e.g. "Lahore 25k solar boys room"' : 'پہلے کچھ لکھیں، جیسے "Lahore mein 25k tak solar room"');
@@ -194,112 +199,153 @@ const Home = () => {
   };
 
   return (
-    <div>
-      <div className="hero">
-        <h1 className="hero-heading">
+    <div style={{ overflowX: 'hidden' }}>
+      <div className="hero" style={{ padding: 'clamp(28px, 5vw, 52px) 14px' }}>
+        <h1 className="hero-heading" style={{ fontSize: 'clamp(22px, 4.5vw, 38px)', lineHeight: '1.25', margin: '0 0 10px' }}>
           {lang === 'en' ? 'Find Stays Across Pakistan' : 'پاکستان بھر میں من پسند رہائش حاصل کریں'}
         </h1>
-        <p className="hero-subtitle">
+        <p className="hero-subtitle" style={{ fontSize: 'clamp(13px, 2.5vw, 16px)', maxWidth: '640px', margin: '0 auto 20px', padding: '0 8px' }}>
           {lang === 'en'
             ? 'Try AI Search: e.g. "Lahore 25k solar boys room" or speak any area!'
             : 'AI سرچ آزمائیں: جیسے "Lahore mein 25k tak solar wala boys room"'}
         </p>
 
-        <div className="unified-search-container">
-          <div className="unified-input-group">
-            <Search color="#64748b" size={20} />
+        {/* 📱💻 ریسپانسیو سرچ بار (ہر اسکرین پر فٹ بیٹھے گی) */}
+        <div
+          className="unified-search-container"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            width: '100%',
+            maxWidth: '780px',
+            margin: '0 auto',
+            padding: '10px 12px',
+            borderRadius: '18px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            className="unified-input-group"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flex: '1 1 230px',
+              minWidth: 0,
+            }}
+          >
+            <Search color="#64748b" size={19} style={{ flexShrink: 0 }} />
             <input
               type="text"
-              placeholder={lang === 'en' ? 'Try: "Lahore 25k solar room" or search city...' : 'لکھیں: "Lahore mein 25k solar room" یا شہر سرچ کریں...'}
+              placeholder={lang === 'en' ? 'Try: "Lahore 25k solar room" or city...' : 'لکھیں: "Lahore 25k solar room" یا شہر...'}
               value={citySearch}
               onChange={(e) => setCitySearch(e.target.value)}
+              style={{ width: '100%', minWidth: 0, border: 'none', outline: 'none', fontSize: '14px', background: 'transparent' }}
             />
           </div>
 
-          <button
-            type="button"
-            onClick={handleAiSearch}
-            disabled={aiLoading}
-            title="Smart AI Search (Roman Urdu / English)"
+          <div
             style={{
-              background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
-              color: '#ffffff',
-              border: 'none',
-              padding: '8px 12px',
-              borderRadius: '999px',
-              cursor: 'pointer',
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap',
+              justifyContent: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+              flex: '0 1 auto',
             }}
           >
-            {aiLoading ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
-            <span>AI Search</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleAiSearch}
+              disabled={aiLoading}
+              title="Smart AI Search (Roman Urdu / English)"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 12px',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {aiLoading ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+              <span>AI Search</span>
+            </button>
 
-          <button
-            type="button"
-            className={`btn-mic ${isListening ? 'listening' : ''}`}
-            onClick={handleVoiceSearch}
-            title="Click to Speak any Area/City"
-          >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
+            <button
+              type="button"
+              className={`btn-mic ${isListening ? 'listening' : ''}`}
+              onClick={handleVoiceSearch}
+              title="Click to Speak any Area/City"
+              style={{ flexShrink: 0 }}
+            >
+              {isListening ? <MicOff size={19} /> : <Mic size={19} />}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleNearMe}
-            disabled={locating}
-            title="Find Stays Near My Live Location"
-            style={{
-              background: '#eff6ff',
-              color: '#1d4ed8',
-              border: '1px solid #bfdbfe',
-              padding: '8px 10px',
-              borderRadius: '999px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <MapPin size={15} /> {locating ? '...' : 'Near Me'}
-          </button>
+            <button
+              type="button"
+              onClick={handleNearMe}
+              disabled={locating}
+              title="Find Stays Near My Live Location"
+              style={{
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #bfdbfe',
+                padding: '8px 10px',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <MapPin size={15} /> {locating ? '...' : 'Near Me'}
+            </button>
 
-          <div className="unified-divider"></div>
-
-          <button
-            className={`unified-filter-btn ${showFilterPanel ? 'active' : ''}`}
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
-          >
-            <SlidersHorizontal size={16} />
-            <span>Filters</span>
-          </button>
+            <button
+              className={`unified-filter-btn ${showFilterPanel ? 'active' : ''}`}
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              <SlidersHorizontal size={16} />
+              <span>Filters</span>
+            </button>
+          </div>
         </div>
 
         {aiBanner && (
           <div
             style={{
               maxWidth: '720px',
+              width: '92%',
               margin: '12px auto 0',
-              background: 'rgba(124, 58, 237, 0.14)',
+              background: 'rgba(124, 58, 237, 0.16)',
               border: '1px solid rgba(167, 139, 250, 0.5)',
               color: '#ffffff',
-              padding: '8px 14px',
+              padding: '8px 12px',
               borderRadius: '10px',
-              fontSize: '13px',
+              fontSize: '12px',
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
               gap: '8px',
+              boxSizing: 'border-box',
             }}
           >
-            <Sparkles size={15} color="#fde047" />
+            <Sparkles size={15} color="#fde047" style={{ flexShrink: 0 }} />
             <span><b>AI Applied:</b> {aiBanner}</span>
             <button
               type="button"
@@ -319,12 +365,24 @@ const Home = () => {
         )}
       </div>
 
-      <div className="category-scroll-container">
-        <div className="category-scroll-list">
+      {/* کیٹیگری پلز (موبائل پر سموتھ اسکرول) */}
+      <div className="category-scroll-container" style={{ padding: '12px 12px 4px', boxSizing: 'border-box' }}>
+        <div
+          className="category-scroll-list"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: '6px',
+          }}
+        >
           <button
             className="category-pill"
             onClick={() => { setSelectedCategory('all'); setOnlyShared(false); }}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               border: selectedCategory === 'all' && !onlyShared ? '2px solid #0f172a' : '1px solid #e2e8f0',
               background: selectedCategory === 'all' && !onlyShared ? '#0f172a' : '#ffffff',
               color: selectedCategory === 'all' && !onlyShared ? '#ffffff' : '#475569',
@@ -337,6 +395,8 @@ const Home = () => {
             className="category-pill"
             onClick={() => setOnlyShared(!onlyShared)}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               border: onlyShared ? '2px solid #16a34a' : '1px solid #e2e8f0',
               background: onlyShared ? '#dcfce7' : '#ffffff',
               color: onlyShared ? '#15803d' : '#475569',
@@ -349,6 +409,8 @@ const Home = () => {
             className="category-pill"
             onClick={() => setSelectedCategory('daily')}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               border: selectedCategory === 'daily' ? '2px solid #2563eb' : '1px solid #e2e8f0',
               background: selectedCategory === 'daily' ? '#eff6ff' : '#ffffff',
               color: selectedCategory === 'daily' ? '#2563eb' : '#475569',
@@ -361,6 +423,8 @@ const Home = () => {
             className="category-pill"
             onClick={() => setSelectedCategory('monthly')}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               border: selectedCategory === 'monthly' ? '2px solid #2563eb' : '1px solid #e2e8f0',
               background: selectedCategory === 'monthly' ? '#eff6ff' : '#ffffff',
               color: selectedCategory === 'monthly' ? '#2563eb' : '#475569',
@@ -373,6 +437,8 @@ const Home = () => {
             className="category-pill"
             onClick={() => setSelectedCategory('yearly')}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               border: selectedCategory === 'yearly' ? '2px solid #2563eb' : '1px solid #e2e8f0',
               background: selectedCategory === 'yearly' ? '#eff6ff' : '#ffffff',
               color: selectedCategory === 'yearly' ? '#2563eb' : '#475569',
@@ -383,8 +449,8 @@ const Home = () => {
         </div>
 
         {showFilterPanel && (
-          <div style={{ maxWidth: '750px', margin: '15px auto 0', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+          <div style={{ maxWidth: '780px', width: '100%', margin: '12px auto 0', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 8px 25px rgba(0,0,0,0.06)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
                   Max Budget: <b style={{ color: '#2563eb' }}>PKR {maxPrice.toLocaleString()}</b>
@@ -398,7 +464,7 @@ const Home = () => {
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '6px' }}>Bedrooms:</label>
-                <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}>
                   <option value="all">Any Bedrooms</option>
                   <option value="1">1+ Bedroom</option>
                   <option value="2">2+ Bedrooms</option>
@@ -408,7 +474,7 @@ const Home = () => {
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', display: 'block', marginBottom: '6px' }}>Preference:</label>
-                <select value={suitableFor} onChange={(e) => setSuitableFor(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                <select value={suitableFor} onChange={(e) => setSuitableFor(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}>
                   <option value="all">Show All</option>
                   <option value="family">👨‍👩‍👧‍👦 Families Only</option>
                   <option value="bachelors">👤 Bachelors Allowed</option>
@@ -423,7 +489,7 @@ const Home = () => {
                     setSharedGender(e.target.value);
                     if (e.target.value !== 'all') setOnlyShared(true);
                   }}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #86efac', fontSize: '13px', boxSizing: 'border-box' }}
                 >
                   <option value="all">Any</option>
                   <option value="boys">👨 Boys / Male</option>
@@ -468,15 +534,68 @@ const Home = () => {
         )}
       </div>
 
-      <div className="container" style={{ position: 'relative', minHeight: '500px', marginTop: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h2 style={{ fontSize: '20px' }}>{viewMode === 'grid' ? `Listings (${houses.length})` : 'Interactive Map of Pakistan 🇵🇰'}</h2>
+      {/* 📢 ریورس رینٹل اسمارٹ بینر (ہوم پیج پر نمایاں بٹن) */}
+      <div style={{ maxWidth: '1200px', margin: '20px auto 0', padding: '0 20px' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+          color: 'white', padding: '16px 24px', borderRadius: '14px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: 'wrap', gap: '14px', boxShadow: '0 6px 20px rgba(30, 27, 75, 0.25)',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <div>
+            <span style={{ fontSize: '11px', background: '#eab308', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+              🌟 REVERSE RENTAL
+            </span>
+            <h3 style={{ margin: '6px 0 2px', fontSize: '18px' }}>
+              {lang === 'en' ? "Can't find your ideal home? Post what you need!" : 'من پسند گھر نہیں مل رہا؟ اپنی ڈیمانڈ پوسٹ کریں!'}
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', opacity: 0.85 }}>
+              {lang === 'en'
+                ? 'Post your area and budget. Verified landlords will send offers directly to you!'
+                : 'اپنا بجٹ اور علاقہ لکھیں، مالکان ڈیلرز کے بغیر خود آپ سے رابطہ کر کے گھر پیش کریں گے۔'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/post-request')}
+              style={{
+                background: '#eab308', color: '#0f172a', border: 'none',
+                padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold',
+                fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap',
+                boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)'
+              }}
+            >
+              ✍️ {lang === 'en' ? 'Post Demand' : 'مجھے گھر چاہیے'}
+            </button>
+
+            <button
+              onClick={() => navigate('/wanted')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
+                padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold',
+                fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              👀 {lang === 'en' ? 'View All Demands' : 'تمام ڈیمانڈز دیکھیں'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="container" style={{ position: 'relative', minHeight: '500px', marginTop: '16px', paddingBottom: '100px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
+          <h2 style={{ fontSize: 'clamp(17px, 3.5vw, 21px)', margin: 0 }}>
+            {viewMode === 'grid' ? `Listings (${houses.length})` : 'Interactive Map of Pakistan 🇵🇰'}
+          </h2>
           <span style={{ fontSize: '12px', color: '#64748b' }}>Live verified stays</span>
         </div>
 
         {viewMode === 'grid' ? (
           houses.length === 0 ? (
-            <div className="house-card" style={{ padding: '35px', textAlign: 'center' }}>
+            <div className="house-card" style={{ padding: '35px 20px', textAlign: 'center' }}>
               <p style={{ color: '#64748b' }}>No properties found. Try resetting filters.</p>
               <button className="btn-secondary" onClick={resetFilters} style={{ marginTop: '10px' }}>Reset All Filters</button>
             </div>
@@ -494,6 +613,7 @@ const Home = () => {
         <button
           className="btn-floating-map"
           onClick={() => setViewMode(viewMode === 'grid' ? 'map' : 'grid')}
+          style={{ bottom: '80px' }}
         >
           {viewMode === 'grid' ? (
             <>

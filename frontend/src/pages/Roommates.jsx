@@ -28,6 +28,8 @@ const Roommates = () => {
   const [locating, setLocating] = useState(false);
   const [activeChatPost, setActiveChatPost] = useState(null);
   const [zoomImage, setZoomImage] = useState(null);
+  const [matchedHouses, setMatchedHouses] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -64,6 +66,18 @@ const Roommates = () => {
   useEffect(() => {
     fetchPosts();
   }, [search, typeFilter, genderFilter]);
+
+  const handleFindMatches = async (postId) => {
+    setMatchLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/matches/for-requirement/${postId}`);
+      setMatchedHouses(res.data || []);
+    } catch (err) {
+      alert('Error loading matches: ' + err.message);
+    } finally {
+      setMatchLoading(false);
+    }
+  };
 
   const handleLiveLocation = async () => {
     setLocating(true);
@@ -177,28 +191,30 @@ const Roommates = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1050px', margin: '30px auto', padding: '0 20px' }}>
+    <div style={{ maxWidth: '1080px', margin: '20px auto 0', padding: '0 14px 95px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      {/* 🌟 ریسپانسیو ہیرو بینر */}
       <div
         style={{
           background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
           color: '#ffffff',
-          padding: '28px',
+          padding: 'clamp(18px, 4vw, 28px)',
           borderRadius: '18px',
-          marginBottom: '24px',
+          marginBottom: '22px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '16px',
           boxShadow: '0 10px 30px rgba(30, 58, 138, 0.2)',
+          boxSizing: 'border-box',
         }}
       >
-        <div>
-          <h1 style={{ margin: '0 0 8px', fontSize: '26px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Users size={28} color="#60a5fa" />
-            {lang === 'en' ? 'Roommate & Room Finder Board' : 'روم میٹ اور کمرہ تلاش بورڈ'}
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 'clamp(20px, 4vw, 26px)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <Users size={26} color="#60a5fa" style={{ flexShrink: 0 }} />
+            <span>{lang === 'en' ? 'Roommate & Room Finder Board' : 'روم میٹ اور کمرہ تلاش بورڈ'}</span>
           </h1>
-          <p style={{ margin: 0, color: '#cbd5e1', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: '#cbd5e1', fontSize: 'clamp(12px, 2.5vw, 14px)', lineHeight: '1.5' }}>
             {lang === 'en'
               ? 'Post your budget & area — let Landlords & Roommates reach out to you directly (0% Commission)!'
               : 'اپنا بجٹ اور علاقہ پوسٹ کریں — مالک مکان اور روم میٹس خود آپ سے رابطہ کریں گے!'}
@@ -215,11 +231,21 @@ const Roommates = () => {
             setShowForm(!showForm);
           }}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: showForm ? '#ef4444' : '#22c55e', color: '#ffffff',
-            border: 'none', padding: '12px 20px', borderRadius: '12px',
-            fontWeight: 'bold', fontSize: '15px', cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            background: showForm ? '#ef4444' : '#22c55e',
+            color: '#ffffff',
+            border: 'none',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            cursor: 'pointer',
             boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+            flex: '0 1 auto',
+            whiteSpace: 'nowrap',
           }}
         >
           {showForm ? <X size={18} /> : <Plus size={18} />}
@@ -227,15 +253,20 @@ const Roommates = () => {
         </button>
       </div>
 
+      {/* 📝 نیا ریسپانسیو پوسٹ فارم */}
       {showForm && (
         <div
           style={{
-            background: '#ffffff', padding: '24px', borderRadius: '16px',
-            border: '1.5px solid #bfdbfe', boxShadow: '0 8px 25px rgba(0,0,0,0.06)',
+            background: '#ffffff',
+            padding: 'clamp(16px, 3.5vw, 24px)',
+            borderRadius: '16px',
+            border: '1.5px solid #bfdbfe',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.06)',
             marginBottom: '25px',
+            boxSizing: 'border-box',
           }}
         >
-          <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#0f172a' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#0f172a', fontSize: 'clamp(16px, 3vw, 19px)' }}>
             {lang === 'en' ? 'What are you looking for?' : 'آپ کو کس چیز کی ضرورت ہے؟'}
           </h3>
 
@@ -245,7 +276,12 @@ const Roommates = () => {
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'need_room', images: [] })}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer',
+                  flex: '1 1 150px',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  cursor: 'pointer',
                   border: formData.type === 'need_room' ? '2px solid #2563eb' : '1px solid #cbd5e1',
                   background: formData.type === 'need_room' ? '#eff6ff' : '#fff',
                   color: formData.type === 'need_room' ? '#1d4ed8' : '#64748b',
@@ -257,7 +293,12 @@ const Roommates = () => {
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'need_roommate' })}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer',
+                  flex: '1 1 150px',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  cursor: 'pointer',
                   border: formData.type === 'need_roommate' ? '2px solid #16a34a' : '1px solid #cbd5e1',
                   background: formData.type === 'need_roommate' ? '#f0fdf4' : '#fff',
                   color: formData.type === 'need_roommate' ? '#15803d' : '#64748b',
@@ -268,70 +309,100 @@ const Roommates = () => {
             </div>
 
             <input
-              type="text" required placeholder="Title (e.g. FAST Student looking for Shared Room in Johar Town)"
-              value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              style={{ padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+              type="text"
+              required
+              placeholder="Title (e.g. FAST Student looking for Shared Room in Johar Town)"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '11px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
             />
 
-            {/* 📍 Live Location Auto-Fill بٹن */}
             <button
               type="button"
               onClick={handleLiveLocation}
               disabled={locating}
               style={{
-                width: '100%', padding: '9px 12px', borderRadius: '8px',
-                border: '1.5px solid #2563eb', background: '#eff6ff', color: '#1d4ed8',
-                fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid #2563eb',
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
               }}
             >
               <MapPin size={16} />
               {locating ? 'Detecting Live Location...' : '📍 Use My Live Location (Auto-Fill City & Area)'}
             </button>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-              <input type="text" required placeholder="City (e.g. Lahore, Islamabad)" value={formData.city}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '10px' }}>
+              <input
+                type="text" required placeholder="City (e.g. Lahore, Islamabad)" value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-              <input type="text" required placeholder="Area / University (e.g. G-11 / NUST)" value={formData.area}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
+              <input
+                type="text" required placeholder="Area / University (e.g. G-11 / NUST)" value={formData.area}
                 onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-              <input type="number" required placeholder="Max Monthly Budget (PKR)" value={formData.maxBudget}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
+              <input
+                type="number" required placeholder="Max Monthly Budget (PKR)" value={formData.maxBudget}
                 onChange={(e) => setFormData({ ...formData, maxBudget: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-              <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '10px' }}>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              >
                 <option value="boys">👨 Boys / Male</option>
                 <option value="girls">👩 Girls / Female</option>
                 <option value="family">👨‍👩‍👧‍👦 Family</option>
                 <option value="any">🤝 Anyone</option>
               </select>
 
-              <input type="text" placeholder="University / Job (e.g. NUST Student, Software Dev)" value={formData.occupation}
+              <input
+                type="text" placeholder="University / Job (e.g. NUST Student)" value={formData.occupation}
                 onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
 
-              <input type="text" required placeholder="WhatsApp Number (03XX-XXXXXXX)" value={formData.phone}
+              <input
+                type="text" required placeholder="WhatsApp Number (03XX-XXXXXXX)" value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
 
-              <input type="date" value={formData.moveInDate}
+              <input
+                type="date" value={formData.moveInDate}
                 onChange={(e) => setFormData({ ...formData, moveInDate: e.target.value })}
-                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} title="Preferred Move-in Date" />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                title="Preferred Move-in Date"
+              />
             </div>
 
             {formData.type === 'need_roommate' && (
-              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '10px', border: '1.5px dashed #86efac' }}>
+              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '10px', border: '1.5px dashed #86efac', boxSizing: 'border-box' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                   <ImageIcon size={16} />
                   {lang === 'en' ? 'Upload Room Photos (Optional - helps find roommates faster!)' : 'کمرے کی تصاویر اپلوڈ کریں (اختیاری)'}
                 </label>
 
-                <input type="file" accept="image/*" multiple onChange={handleMultipleImages} disabled={uploadProgress !== null}
-                  style={{ width: '100%', fontSize: '13px', cursor: 'pointer' }} />
+                <input
+                  type="file" accept="image/*" multiple onChange={handleMultipleImages} disabled={uploadProgress !== null}
+                  style={{ width: '100%', fontSize: '13px', cursor: 'pointer' }}
+                />
 
                 {uploadProgress !== null && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#15803d', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -344,8 +415,11 @@ const Roommates = () => {
                     {formData.images.map((img, idx) => (
                       <div key={idx} style={{ position: 'relative' }}>
                         <img src={img} alt="Preview" style={{ width: '70px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                        <button type="button" onClick={() => removeImage(idx)}
-                          style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        >
                           <X size={11} />
                         </button>
                       </div>
@@ -355,33 +429,50 @@ const Roommates = () => {
               </div>
             )}
 
-            <textarea rows="3" required placeholder="Write details (e.g. Need clean room with WiFi, non-smoker, near metro...)"
-              value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }} />
+            <textarea
+              rows="3"
+              required
+              placeholder="Write details (e.g. Need clean room with WiFi, non-smoker, near metro...)"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+            />
 
-            <button type="submit" className="btn-primary" disabled={submitting || uploadProgress !== null} style={{ padding: '12px', fontSize: '15px' }}>
+            <button type="submit" className="btn-primary" disabled={submitting || uploadProgress !== null} style={{ width: '100%', padding: '12px', fontSize: '15px' }}>
               {submitting ? 'Publishing...' : (lang === 'en' ? 'Publish Post 🚀' : 'پوسٹ شائع کریں 🚀')}
             </button>
           </form>
         </div>
       )}
 
+      {/* 🔍 ریسپانسیو سرچ اور فلٹر بار */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px', alignItems: 'center' }}>
-        <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px 12px' }}>
-          <Search size={18} color="#64748b" />
-          <input type="text" placeholder={lang === 'en' ? 'Search city, area, university (e.g. NUST, Johar Town)...' : 'شہر، علاقہ یا یونیورسٹی سرچ کریں...'}
-            value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }} />
+        <div style={{ flex: '1 1 230px', minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px 12px', boxSizing: 'border-box' }}>
+          <Search size={18} color="#64748b" style={{ flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder={lang === 'en' ? 'Search city, area, university (e.g. NUST)...' : 'شہر، علاقہ یا یونیورسٹی سرچ کریں...'}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ border: 'none', outline: 'none', width: '100%', minWidth: 0, fontSize: '14px' }}
+          />
         </div>
 
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-          style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '600', fontSize: '13px' }}>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={{ flex: '1 1 140px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '600', fontSize: '13px', boxSizing: 'border-box' }}
+        >
           <option value="all">All Posts</option>
           <option value="need_room">🏠 Need a Room</option>
           <option value="need_roommate">🤝 Need a Roommate</option>
         </select>
 
-        <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)}
-          style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '600', fontSize: '13px' }}>
+        <select
+          value={genderFilter}
+          onChange={(e) => setGenderFilter(e.target.value)}
+          style={{ flex: '1 1 130px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '600', fontSize: '13px', boxSizing: 'border-box' }}
+        >
           <option value="all">All Genders</option>
           <option value="boys">👨 Boys</option>
           <option value="girls">👩 Girls</option>
@@ -389,16 +480,17 @@ const Roommates = () => {
         </select>
       </div>
 
+      {/* 📋 ریسپانسیو پوسٹس گرڈ */}
       {loading ? (
         <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>Loading posts...</p>
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '50px 20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', color: '#64748b' }}>
+        <div style={{ textAlign: 'center', padding: '45px 20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', color: '#64748b' }}>
           <Users size={42} color="#cbd5e1" style={{ marginBottom: '10px' }} />
           <h3>{lang === 'en' ? 'No posts found yet' : 'ابھی کوئی پوسٹ موجود نہیں'}</h3>
           <p>{lang === 'en' ? 'Be the first to post your room or roommate requirement!' : 'پہلی پوسٹ آپ خود لگائیں!'}</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 290px), 1fr))', gap: '16px' }}>
           {posts.map((post) => {
             const gBadge = getGenderBadge(post.gender);
             const isOwner = currentUserId && String(post.user?._id || post.user) === String(currentUserId);
@@ -409,17 +501,41 @@ const Roommates = () => {
             )}`;
 
             return (
-              <div key={post._id} style={{ background: '#ffffff', borderRadius: '14px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+              <div
+                key={post._id}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '14px',
+                  padding: '18px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  boxSizing: 'border-box',
+                  minWidth: 0,
+                }}
+              >
                 <div>
                   {post.images && post.images.length > 0 && (
                     <div style={{ marginBottom: '12px' }}>
-                      <img src={post.images[0]} alt={post.title} onClick={() => setZoomImage(post.images[0])}
-                        style={{ width: '100%', height: '165px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer' }} />
+                      <img
+                        src={post.images[0]}
+                        alt={post.title}
+                        onClick={() => setZoomImage(post.images[0])}
+                        style={{ width: '100%', height: '165px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer' }}
+                      />
                       {post.images.length > 1 && (
                         <div style={{ display: 'flex', gap: '6px', marginTop: '6px', overflowX: 'auto' }}>
                           {post.images.slice(1).map((img, i) => (
-                            <img key={i} src={img} alt={`Room ${i + 2}`} onClick={() => setZoomImage(img)}
-                              style={{ width: '50px', height: '42px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1' }} />
+                            <img
+                              key={i}
+                              src={img}
+                              alt={`Room ${i + 2}`}
+                              onClick={() => setZoomImage(img)}
+                              style={{ width: '50px', height: '42px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
+                            />
                           ))}
                         </div>
                       )}
@@ -427,8 +543,19 @@ const Roommates = () => {
                   )}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '4px 10px', borderRadius: '999px', background: post.type === 'need_roommate' ? '#dcfce7' : '#dbeafe', color: post.type === 'need_roommate' ? '#15803d' : '#1d4ed8' }}>
-                      {post.type === 'need_roommate' ? (lang === 'en' ? '🤝 Needs Roommate' : '🤝 روم میٹ چاہیے') : (lang === 'en' ? '🏠 Needs Room' : '🏠 کمرہ چاہیے')}
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        background: post.type === 'need_roommate' ? '#dcfce7' : '#dbeafe',
+                        color: post.type === 'need_roommate' ? '#15803d' : '#1d4ed8',
+                      }}
+                    >
+                      {post.type === 'need_roommate'
+                        ? (lang === 'en' ? '🤝 Needs Roommate' : '🤝 روم میٹ چاہیے')
+                        : (lang === 'en' ? '🏠 Needs Room' : '🏠 کمرہ چاہیے')}
                     </span>
 
                     <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '4px 10px', borderRadius: '999px', background: gBadge.bg, color: gBadge.color }}>
@@ -436,28 +563,28 @@ const Roommates = () => {
                     </span>
                   </div>
 
-                  <h3 style={{ margin: '0 0 8px', fontSize: '17px', color: '#0f172a' }}>{post.title}</h3>
+                  <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: '#0f172a', wordBreak: 'break-word' }}>{post.title}</h3>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '13px', color: '#475569', marginBottom: '10px' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <MapPin size={14} color="#2563eb" /> <b>{post.area}, {post.city}</b>
+                      <MapPin size={14} color="#2563eb" style={{ flexShrink: 0 }} /> <b>{post.area}, {post.city}</b>
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#15803d', fontWeight: '700' }}>
-                      <Wallet size={14} /> Budget: PKR {post.maxBudget?.toLocaleString()} / mo
+                      <Wallet size={14} style={{ flexShrink: 0 }} /> Budget: PKR {post.maxBudget?.toLocaleString()} / mo
                     </span>
                     {post.occupation && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Briefcase size={14} color="#64748b" /> {post.occupation}
+                        <Briefcase size={14} color="#64748b" style={{ flexShrink: 0 }} /> {post.occupation}
                       </span>
                     )}
                     {post.moveInDate && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Calendar size={14} color="#64748b" /> Move-in: {new Date(post.moveInDate).toLocaleDateString()}
+                        <Calendar size={14} color="#64748b" style={{ flexShrink: 0 }} /> Move-in: {new Date(post.moveInDate).toLocaleDateString()}
                       </span>
                     )}
                   </div>
 
-                  <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: '1.5', background: '#f8fafc', padding: '10px', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: '1.5', background: '#f8fafc', padding: '10px', borderRadius: '8px', wordBreak: 'break-word' }}>
                     {post.description}
                   </p>
                 </div>
@@ -467,25 +594,92 @@ const Roommates = () => {
                     Posted by: <b style={{ color: '#0f172a' }}>{post.user?.name || 'User'}</b>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {post.type === 'need_room' && (
+                      <button
+                        type="button"
+                        onClick={() => handleFindMatches(post._id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {matchLoading ? '...' : '🎯 Matches'}
+                      </button>
+                    )}
+
                     {!isOwner && (
-                      <button type="button" onClick={() => {
-                        if (!currentUser) { alert('Please log in first to chat!'); navigate('/login'); return; }
-                        setActiveChatPost(post);
-                      }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#0f172a', color: '#ffffff', border: 'none', padding: '7px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!currentUser) {
+                            alert('Please log in first to chat!');
+                            navigate('/login');
+                            return;
+                          }
+                          setActiveChatPost(post);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '7px 11px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                        }}
+                      >
                         <MessageCircle size={14} color="#60a5fa" /> Chat
                       </button>
                     )}
 
-                    <a href={waUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#16a34a', color: '#fff', padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none' }}>
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#16a34a',
+                        color: '#fff',
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                      }}
+                    >
                       <MessageCircle size={14} /> WhatsApp
                     </a>
 
                     {canDelete && (
-                      <button onClick={() => handleDelete(post._id)} title="Delete Post"
-                        style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex' }}>
+                      <button
+                        onClick={() => handleDelete(post._id)}
+                        title="Delete Post"
+                        style={{
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          border: '1px solid #fecaca',
+                          padding: '7px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                        }}
+                      >
                         <Trash2 size={14} />
                       </button>
                     )}
@@ -498,8 +692,36 @@ const Roommates = () => {
       )}
 
       {zoomImage && (
-        <div onClick={() => setZoomImage(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <img src={zoomImage} alt="Enlarged" style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain' }} />
+        <div onClick={() => setZoomImage(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <img src={zoomImage} alt="Enlarged" style={{ maxWidth: '92vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain' }} />
+        </div>
+      )}
+
+      {matchedHouses !== null && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.75)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', boxSizing: 'border-box' }}>
+          <div style={{ background: '#fff', padding: '20px', borderRadius: '14px', maxWidth: '520px', width: '100%', maxHeight: '80vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px' }}>🎯 Matching Rooms Found ({matchedHouses.length})</h3>
+              <button onClick={() => setMatchedHouses(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            {matchedHouses.length === 0 ? (
+              <p style={{ color: '#64748b', fontSize: '14px' }}>No matching houses in this budget yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {matchedHouses.map((h) => (
+                  <div key={h._id} onClick={() => navigate(`/house/${h._id}`)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'pointer', background: '#f8fafc' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <b style={{ fontSize: '14px', color: '#0f172a', display: 'block', wordBreak: 'break-word' }}>{h.title}</b>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{h.address}, {h.city} • PKR {h.effectiveRent?.toLocaleString()}/mo</div>
+                    </div>
+                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '999px', flexShrink: 0 }}>
+                      {h.matchPercent}% Match
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
