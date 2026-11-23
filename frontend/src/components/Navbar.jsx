@@ -17,6 +17,7 @@ import {
   Bell,
   CheckCheck,
   Handshake,
+  Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -421,8 +422,8 @@ const Navbar = () => {
           display: none;
         }
 
-        /* iPad + Tablet + Mobile (<= 1159px) */
-        @media (max-width: 1159px) {
+        /* iPad + Tablet + Mobile (<= 1240px) */
+        @media (max-width: 1240px) {
           .hr-navbar {
             padding: 10px 16px;
           }
@@ -580,7 +581,7 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* ڈیسک ٹاپ مینیو (>= 1160px) */}
+      {/* ڈیسک ٹاپ مینیو (>= 1241px) */}
       <div className="hr-nav-desktop">
         <button
           type="button"
@@ -602,6 +603,20 @@ const Navbar = () => {
         >
           <Users size={15} />
           {lang === 'en' ? 'Roommates' : 'روم میٹس'}
+        </button>
+
+        <button
+          type="button"
+          className="hr-nav-btn"
+          onClick={() => handleNavigate('/wanted')}
+          style={{
+            background: '#eef2ff',
+            color: '#4338ca',
+            border: '1px solid #c7d2fe',
+          }}
+        >
+          <Megaphone size={15} />
+          {lang === 'en' ? 'Demands' : 'ڈیمانڈز'}
         </button>
 
         {currentUser?.role === 'admin' && (
@@ -822,6 +837,20 @@ const Navbar = () => {
           >
             <Users size={18} />
             {lang === 'en' ? 'Roommates Finder' : 'روم میٹس تلاش'}
+          </button>
+
+          <button
+            type="button"
+            className="hr-drawer-btn"
+            onClick={() => handleNavigate('/wanted')}
+            style={{
+              background: '#eef2ff',
+              color: '#4338ca',
+              border: '1px solid #c7d2fe',
+            }}
+          >
+            <Megaphone size={18} />
+            {lang === 'en' ? 'Tenant Demands' : 'گھر کی ڈیمانڈز'}
           </button>
 
           {currentUser?.role === 'admin' && (
