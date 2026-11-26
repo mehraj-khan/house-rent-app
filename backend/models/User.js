@@ -12,7 +12,9 @@ const userSchema = new mongoose.Schema(
       default: 'tenant',
     },
     resetOtp: { type: String, default: null },
-resetOtpExpires: { type: Date, default: null },
+    resetOtpExpires: { type: Date, default: null },
+    isVerified: { type: Boolean, default: false },
+
   },
   { timestamps: true }
 );

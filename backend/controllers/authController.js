@@ -147,7 +147,7 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      role: role || 'tenant',
+      role: role === 'landlord' ? 'landlord' : 'tenant',
     });
 
     const token = jwt.sign(
@@ -286,11 +286,12 @@ export const updateProfile = async (req, res) => {
   try {
     const { userId, name, phone } = req.body;
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, phone },
-      { new: true }
-    ).select('-password');
+const targetUserId = req.user?._id || userId;
+const user = await User.findByIdAndUpdate(
+  targetUserId,
+  { name, phone },
+  { new: true }
+).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found!' });

@@ -1,14 +1,31 @@
 import express from 'express';
-import { addHouse, getAllHouses, getHouseById, deleteHouse, getMyHouses, updateHouse  } from '../controllers/houseController.js';
+import {
+  addHouse,
+  getAllHouses,
+  getHouseById,
+  getSimilarHouses,
+  deleteHouse,
+  getMyHouses,
+  updateHouse,
+  requestFreeVisit,
+} from '../controllers/houseController.js';
+import { protect, rateLimiter } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getAllHouses);
-router.get('/:id', getHouseById);
-router.post('/add', addHouse);
-router.delete('/:id', deleteHouse); // deleteHouse یہاں امپورٹ ہو کر استعمال ہو رہا ہے
-router.get('/owner/:ownerId', getMyHouses); // نیا روٹ شامل کیا
-router.put('/:id', updateHouse);
+const visitLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many visit requests. Please wait a few minutes.',
+});
 
+router.get('/', getAllHouses);
+router.get('/owner/:ownerId', protect, getMyHouses);
+router.get('/:id/similar', getSimilarHouses);
+router.get('/:id', getHouseById);
+router.post('/add', protect, addHouse);
+router.post('/:id/request-visit', visitLimiter, requestFreeVisit);
+router.put('/:id', protect, updateHouse);
+router.delete('/:id', protect, deleteHouse);
 
 export default router;

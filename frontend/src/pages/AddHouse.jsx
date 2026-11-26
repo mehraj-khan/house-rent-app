@@ -3,7 +3,9 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { X, Calendar, Clock, Video, Loader2, Users, MapPin, Sparkles } from 'lucide-react';
+import {
+  X, Calendar, Clock, Video, Loader2, Users, MapPin, Sparkles, Tag, Building2
+} from 'lucide-react';
 import { uploadToCloudinary } from '../utils/uploadCloudinary';
 import { getLiveLocation } from '../utils/getLiveLocation';
 
@@ -11,6 +13,13 @@ const API_URL =
   window.location.hostname === 'localhost'
     ? 'http://localhost:5000'
     : 'https://house-rent-app-ten.vercel.app';
+
+const formatPKR = (amount) => {
+  const num = Number(amount) || 0;
+  if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Crore`;
+  if (num >= 100000) return `${(num / 100000).toFixed(1)} Lac`;
+  return num.toLocaleString();
+};
 
 const AddHouse = () => {
   const { currentUser, lang } = useAuth();
@@ -21,12 +30,16 @@ const AddHouse = () => {
   const [aiGenerating, setAiGenerating] = useState(false);
 
   const [houseData, setHouseData] = useState({
+    purpose: 'rent', // 'rent' | 'sale'
+    propertyType: 'house', // 'house' | 'flat' | 'plot' | 'portion' | 'commercial'
     title: '',
     description: '',
     city: '',
     address: '',
     bedrooms: '',
     bathrooms: '',
+
+    // Rent fields
     rentPrice: '',
     pricePerDay: '',
     pricePerYear: '',
@@ -37,6 +50,15 @@ const AddHouse = () => {
     sharedGender: 'boys',
     availableFrom: '',
     availableTo: '',
+
+    // Sale fields
+    salePrice: '',
+    areaSize: '',
+    areaUnit: 'Marla',
+    isNegotiable: true,
+    possessionStatus: 'ready',
+    installmentAvailable: false,
+
     videoUrl: '',
     images: [],
     nearLandmark: '',
@@ -51,6 +73,9 @@ const AddHouse = () => {
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const isSale = houseData.purpose === 'sale';
+  const isPlotOrCommercial =
+    houseData.propertyType === 'plot' || houseData.propertyType === 'commercial';
 
   const handleAiDescription = async () => {
     setAiGenerating(true);
@@ -156,20 +181,25 @@ const AddHouse = () => {
   };
 
   const splitRentPerPerson =
-    houseData.isShared && Number(houseData.rentPrice) > 0 && Number(houseData.totalBeds) > 0
+    !isSale && houseData.isShared && Number(houseData.rentPrice) > 0 && Number(houseData.totalBeds) > 0
       ? Math.round(Number(houseData.rentPrice) / Number(houseData.totalBeds))
       : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      alert('Please log in first as a Landlord!');
+      alert('Please log in first!');
       navigate('/login');
       return;
     }
 
     if (houseData.images.length === 0) {
-      alert('Please upload at least one house photo!');
+      alert('Please upload at least one property photo!');
+      return;
+    }
+
+    if (isSale && Number(houseData.salePrice) <= 0) {
+      alert('Please enter a valid Demand Price for sale!');
       return;
     }
 
@@ -177,18 +207,24 @@ const AddHouse = () => {
     try {
       await axios.post(`${API_URL}/api/houses/add`, {
         ...houseData,
-        rentPrice: Number(houseData.rentPrice) || 0,
-        pricePerDay: Number(houseData.pricePerDay) || 0,
-        pricePerYear: Number(houseData.pricePerYear) || 0,
-        bedrooms: Number(houseData.bedrooms),
-        bathrooms: Number(houseData.bathrooms),
-        totalBeds: houseData.isShared ? Number(houseData.totalBeds) || 2 : 1,
+        rentPrice: isSale ? 0 : Number(houseData.rentPrice) || 0,
+        pricePerDay: isSale ? 0 : Number(houseData.pricePerDay) || 0,
+        pricePerYear: isSale ? 0 : Number(houseData.pricePerYear) || 0,
+        availableFor: isSale ? [] : houseData.availableFor,
+        salePrice: isSale ? Number(houseData.salePrice) || 0 : 0,
+        bedrooms: isPlotOrCommercial ? Number(houseData.bedrooms) || 0 : Number(houseData.bedrooms) || 1,
+        bathrooms: isPlotOrCommercial ? Number(houseData.bathrooms) || 0 : Number(houseData.bathrooms) || 1,
+        totalBeds: !isSale && houseData.isShared ? Number(houseData.totalBeds) || 2 : 1,
         pricePerPerson: splitRentPerPerson,
         owner: currentUser?.id || currentUser?._id,
       });
 
-      alert('Property published successfully to Cloud! 🏠🎉');
-      navigate('/');
+      alert(
+        isSale
+          ? 'Property listed for Sale successfully! 🏷️🎉'
+          : 'Property published successfully to Cloud! 🏠🎉'
+      );
+      navigate(isSale ? '/buy' : '/');
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -334,51 +370,94 @@ const AddHouse = () => {
       `}</style>
 
       <div className="house-card ah-card">
-        <h2 className="ah-title">List Property with Video &amp; Cloud Storage 🏠</h2>
+        <h2 className="ah-title">
+          {isSale
+            ? (lang === 'en' ? 'Sell Property with Video & Cloud Storage 🏷️' : 'پراپرٹی فروخت کے لیے لگائیں 🏷️')
+            : (lang === 'en' ? 'List Property with Video & Cloud Storage 🏠' : 'کرایہ کے لیے گھر لسٹ کریں 🏠')}
+        </h2>
 
-        {uploadProgress !== null && (
-          <div
+        {/* Purpose Switcher: For Rent vs For Sale */}
+        <div className="ah-grid-2" style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setHouseData((prev) => ({ ...prev, purpose: 'rent' }))}
+            className="ah-pill-btn"
             style={{
-              background: '#eff6ff',
-              color: '#1e40af',
-              padding: '12px 14px',
-              borderRadius: '10px',
-              marginBottom: '14px',
-              border: '1px solid #bfdbfe',
+              gap: '8px',
+              minHeight: '46px',
+              border: !isSale ? '2px solid #2563eb' : '1px solid #cbd5e1',
+              background: !isSale ? '#eff6ff' : '#fff',
+              color: !isSale ? '#1d4ed8' : '#475569',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '6px',
-                fontWeight: 'bold',
-                fontSize: '13px',
-              }}
-            >
+            <Building2 size={17} />
+            {lang === 'en' ? 'For Rent (کرایہ)' : 'کرایہ پر دینا ہے'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setHouseData((prev) => ({ ...prev, purpose: 'sale', isShared: false }))}
+            className="ah-pill-btn"
+            style={{
+              gap: '8px',
+              minHeight: '46px',
+              border: isSale ? '2px solid #047857' : '1px solid #cbd5e1',
+              background: isSale ? '#ecfdf5' : '#fff',
+              color: isSale ? '#047857' : '#475569',
+            }}
+          >
+            <Tag size={17} />
+            {lang === 'en' ? 'For Sale (فروخت)' : 'پراپرٹی بیچنی ہے'}
+          </button>
+        </div>
+
+        {/* Property Type Selector */}
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>
+            Property Type:
+          </label>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              { key: 'house', label: '🏡 House' },
+              { key: 'flat', label: '🏢 Flat / Apt' },
+              { key: 'portion', label: '🚪 Portion' },
+              { key: 'plot', label: '📐 Plot / Land' },
+              { key: 'commercial', label: '🏪 Commercial' },
+            ].map((pt) => {
+              const active = houseData.propertyType === pt.key;
+              return (
+                <button
+                  key={pt.key}
+                  type="button"
+                  onClick={() => setHouseData({ ...houseData, propertyType: pt.key })}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    border: active ? '2px solid #0f172a' : '1px solid #cbd5e1',
+                    background: active ? '#0f172a' : '#fff',
+                    color: active ? '#fff' : '#475569',
+                  }}
+                >
+                  {pt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {uploadProgress !== null && (
+          <div style={{ background: '#eff6ff', color: '#1e40af', padding: '12px 14px', borderRadius: '10px', marginBottom: '14px', border: '1px solid #bfdbfe' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontWeight: 'bold', fontSize: '13px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Loader2 className="spin" size={16} /> Fast Cloud Uploading...
               </span>
               <span>{uploadProgress}%</span>
             </div>
-            <div
-              style={{
-                width: '100%',
-                height: '8px',
-                background: '#dbeafe',
-                borderRadius: '4px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${uploadProgress}%`,
-                  height: '100%',
-                  background: '#2563eb',
-                  transition: 'width 0.2s ease',
-                }}
-              />
+            <div style={{ width: '100%', height: '8px', background: '#dbeafe', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#2563eb', transition: 'width 0.2s ease' }} />
             </div>
           </div>
         )}
@@ -386,7 +465,11 @@ const AddHouse = () => {
         <form onSubmit={handleSubmit}>
           <input
             type="text"
-            placeholder="Title (e.g. 2-Bed Luxury Suite / Shared Student Room)"
+            placeholder={
+              isSale
+                ? 'Title (e.g. 5 Marla Brand New House in DHA Phase 6)'
+                : 'Title (e.g. 2-Bed Luxury Suite / Shared Student Room)'
+            }
             required
             value={houseData.title}
             onChange={(e) => setHouseData({ ...houseData, title: e.target.value })}
@@ -394,320 +477,296 @@ const AddHouse = () => {
             style={{ marginBottom: '12px' }}
           />
 
-          {/* Availability Dates */}
-          <div
-            className="ah-box"
-            style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe' }}
-          >
-            <label
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: '#1e40af',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '10px',
-              }}
+          {/* Area Size & Unit (Marla / Kanal / Sq. Ft) */}
+          <div className="ah-grid-2">
+            <input
+              type="text"
+              placeholder="Area Size (e.g. 5, 10, 1)"
+              required={isSale}
+              value={houseData.areaSize}
+              onChange={(e) => setHouseData({ ...houseData, areaSize: e.target.value })}
+              className="ah-input"
+            />
+            <select
+              value={houseData.areaUnit}
+              onChange={(e) => setHouseData({ ...houseData, areaUnit: e.target.value })}
+              className="ah-input"
             >
-              <Clock size={16} style={{ flexShrink: 0 }} /> When is this space available?
-            </label>
+              <option value="Marla">Marla</option>
+              <option value="Kanal">Kanal</option>
+              <option value="Sq. Ft">Sq. Ft</option>
+              <option value="Sq. Yds">Sq. Yds (Gaz)</option>
+            </select>
+          </div>
 
-            <div className="ah-grid-2" style={{ marginBottom: 0 }}>
-              <div style={{ minWidth: 0 }}>
-                <label
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    color: '#475569',
-                    display: 'block',
-                    marginBottom: '4px',
-                  }}
-                >
-                  AVAILABLE FROM:
-                </label>
-                <input
-                  type="date"
-                  min={todayStr}
-                  value={houseData.availableFrom}
-                  onChange={(e) =>
-                    setHouseData({ ...houseData, availableFrom: e.target.value })
-                  }
-                  className="ah-input"
-                  style={{ padding: '9px 10px' }}
-                />
+          {/* SALE MODE BOX */}
+          {isSale ? (
+            <div className="ah-box" style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#065f46', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                <Tag size={16} /> Sale Price &amp; Ownership Details:
+              </label>
+
+              <input
+                type="number"
+                placeholder="Total Demand Price (PKR) e.g. 25000000"
+                required
+                min="10000"
+                value={houseData.salePrice}
+                onChange={(e) => setHouseData({ ...houseData, salePrice: e.target.value })}
+                className="ah-input"
+                style={{ marginBottom: '8px', borderColor: '#6ee7b7' }}
+              />
+
+              {Number(houseData.salePrice) > 0 && (
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#047857', marginBottom: '12px' }}>
+                  💡 Display Price: PKR {formatPKR(houseData.salePrice)}
+                </div>
+              )}
+
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#065f46', display: 'block', marginBottom: '6px' }}>
+                Possession Status:
+              </label>
+              <div className="ah-grid-3" style={{ marginBottom: '12px' }}>
+                {[
+                  { value: 'ready', label: '✅ Ready' },
+                  { value: 'under_construction', label: '🏗️ Under Const.' },
+                  { value: 'file', label: '📄 Plot File' },
+                ].map((pos) => {
+                  const active = houseData.possessionStatus === pos.value;
+                  return (
+                    <button
+                      key={pos.value}
+                      type="button"
+                      onClick={() => setHouseData({ ...houseData, possessionStatus: pos.value })}
+                      className="ah-pill-btn"
+                      style={{
+                        border: active ? '2px solid #047857' : '1px solid #cbd5e1',
+                        background: active ? '#d1fae5' : '#fff',
+                        color: active ? '#065f46' : '#475569',
+                      }}
+                    >
+                      {pos.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div style={{ minWidth: 0 }}>
-                <label
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    color: '#475569',
-                    display: 'block',
-                    marginBottom: '4px',
-                  }}
-                >
-                  AVAILABLE TO (Optional):
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#065f46', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={houseData.isNegotiable}
+                    onChange={(e) => setHouseData({ ...houseData, isNegotiable: e.target.checked })}
+                  />
+                  Price is Negotiable
                 </label>
-                <input
-                  type="date"
-                  min={houseData.availableFrom || todayStr}
-                  value={houseData.availableTo}
-                  onChange={(e) =>
-                    setHouseData({ ...houseData, availableTo: e.target.value })
-                  }
-                  className="ah-input"
-                  style={{ padding: '9px 10px' }}
-                />
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#065f46', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={houseData.installmentAvailable}
+                    onChange={(e) => setHouseData({ ...houseData, installmentAvailable: e.target.checked })}
+                  />
+                  Installments Available
+                </label>
               </div>
             </div>
-          </div>
-
-          {/* Rental Rates */}
-          <div
-            className="ah-box"
-            style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
-          >
-            <label
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: '#1e293b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '10px',
-              }}
-            >
-              <Calendar size={15} /> Rental Rates:
-            </label>
-
-            <div className="ah-grid-3" style={{ marginBottom: '10px' }}>
-              {['daily', 'monthly', 'yearly'].map((type) => {
-                const selected = houseData.availableFor.includes(type);
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => toggleAvailableFor(type)}
-                    className="ah-pill-btn"
-                    style={{
-                      border: selected ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                      background: selected ? '#eff6ff' : '#fff',
-                      color: selected ? '#2563eb' : '#64748b',
-                      textTransform: 'capitalize',
-                    }}
-                  >
-                    ✓ {type}
-                  </button>
-                );
-              })}
-            </div>
-
-            {houseData.availableFor.includes('daily') && (
-              <input
-                type="number"
-                placeholder="Daily Rate (PKR/night)"
-                required
-                value={houseData.pricePerDay}
-                onChange={(e) =>
-                  setHouseData({ ...houseData, pricePerDay: e.target.value })
-                }
-                className="ah-input"
-                style={{ marginBottom: '8px' }}
-              />
-            )}
-            {houseData.availableFor.includes('monthly') && (
-              <input
-                type="number"
-                placeholder="Monthly Rent (PKR/month)"
-                required
-                value={houseData.rentPrice}
-                onChange={(e) =>
-                  setHouseData({ ...houseData, rentPrice: e.target.value })
-                }
-                className="ah-input"
-                style={{ marginBottom: '8px' }}
-              />
-            )}
-            {houseData.availableFor.includes('yearly') && (
-              <input
-                type="number"
-                placeholder="Yearly Total in PKR (Optional)"
-                value={houseData.pricePerYear}
-                onChange={(e) =>
-                  setHouseData({ ...houseData, pricePerYear: e.target.value })
-                }
-                className="ah-input"
-              />
-            )}
-          </div>
-
-          {/* Suitable For */}
-          <div className="ah-grid-3" style={{ marginBottom: '14px' }}>
-            {['family', 'bachelors', 'both'].map((s) => {
-              const active = houseData.suitableFor === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setHouseData({ ...houseData, suitableFor: s })}
-                  className="ah-pill-btn"
-                  style={{
-                    border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                    background: active ? '#eff6ff' : '#fff',
-                    color: active ? '#2563eb' : '#64748b',
-                  }}
-                >
-                  {s === 'family'
-                    ? '👨‍👩‍👧‍👦 Family'
-                    : s === 'bachelors'
-                      ? '👤 Bachelors'
-                      : '🤝 Both'}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Shared Room / Hostel */}
-          <div
-            className="ah-box"
-            style={{
-              background: houseData.isShared ? '#f0fdf4' : '#f8fafc',
-              border: houseData.isShared ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
-            }}
-          >
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                color: '#0f172a',
-                lineHeight: '1.4',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={houseData.isShared}
-                onChange={(e) =>
-                  setHouseData((prev) => ({
-                    ...prev,
-                    isShared: e.target.checked,
-                    suitableFor:
-                      e.target.checked && prev.suitableFor === 'family'
-                        ? 'bachelors'
-                        : prev.suitableFor,
-                  }))
-                }
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  marginTop: '2px',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                }}
-              />
-              <Users size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <span>
-                {lang === 'en'
-                  ? '🎓 Allow Shared Room / Hostel / Roommates (Split Rent)'
-                  : '🎓 مشترکہ کمرہ / ہاسٹل / روم میٹ (Split Rent) کی اجازت دیں'}
-              </span>
-            </label>
-
-            {houseData.isShared && (
-              <div
-                style={{
-                  marginTop: '14px',
-                  paddingTop: '12px',
-                  borderTop: '1px solid #bbf7d0',
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    color: '#166534',
-                    display: 'block',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Sharing Preference:
+          ) : (
+            /* RENT MODE BOXES */
+            <>
+              <div className="ah-box" style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                  <Clock size={16} style={{ flexShrink: 0 }} /> When is this space available?
                 </label>
-                <div className="ah-grid-3" style={{ marginBottom: '12px' }}>
-                  {[
-                    { value: 'boys', label: '👨 Boys / Male' },
-                    { value: 'girls', label: '👩 Girls / Female' },
-                    { value: 'any', label: '🤝 Anyone' },
-                  ].map((g) => {
-                    const active = houseData.sharedGender === g.value;
+
+                <div className="ah-grid-2" style={{ marginBottom: 0 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>AVAILABLE FROM:</label>
+                    <input
+                      type="date"
+                      min={todayStr}
+                      value={houseData.availableFrom}
+                      onChange={(e) => setHouseData({ ...houseData, availableFrom: e.target.value })}
+                      className="ah-input"
+                      style={{ padding: '9px 10px' }}
+                    />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>AVAILABLE TO (Optional):</label>
+                    <input
+                      type="date"
+                      min={houseData.availableFrom || todayStr}
+                      value={houseData.availableTo}
+                      onChange={(e) => setHouseData({ ...houseData, availableTo: e.target.value })}
+                      className="ah-input"
+                      style={{ padding: '9px 10px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="ah-box" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                  <Calendar size={15} /> Rental Rates:
+                </label>
+
+                <div className="ah-grid-3" style={{ marginBottom: '10px' }}>
+                  {['daily', 'monthly', 'yearly'].map((type) => {
+                    const selected = houseData.availableFor.includes(type);
                     return (
                       <button
-                        key={g.value}
+                        key={type}
                         type="button"
-                        onClick={() =>
-                          setHouseData({ ...houseData, sharedGender: g.value })
-                        }
+                        onClick={() => toggleAvailableFor(type)}
                         className="ah-pill-btn"
                         style={{
-                          border: active ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                          background: active ? '#dcfce7' : '#fff',
-                          color: active ? '#15803d' : '#64748b',
+                          border: selected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                          background: selected ? '#eff6ff' : '#fff',
+                          color: selected ? '#2563eb' : '#64748b',
+                          textTransform: 'capitalize',
                         }}
                       >
-                        {g.label}
+                        ✓ {type}
                       </button>
                     );
                   })}
                 </div>
 
-                <label
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    color: '#166534',
-                    display: 'block',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Split Rent Between (Total Persons):
-                </label>
-                <input
-                  type="number"
-                  min="2"
-                  max="10"
-                  value={houseData.totalBeds}
-                  onChange={(e) =>
-                    setHouseData({ ...houseData, totalBeds: e.target.value })
-                  }
-                  className="ah-input"
-                  style={{ borderColor: '#86efac' }}
-                />
+                {houseData.availableFor.includes('daily') && (
+                  <input
+                    type="number"
+                    placeholder="Daily Rate (PKR/night)"
+                    required
+                    value={houseData.pricePerDay}
+                    onChange={(e) => setHouseData({ ...houseData, pricePerDay: e.target.value })}
+                    className="ah-input"
+                    style={{ marginBottom: '8px' }}
+                  />
+                )}
+                {houseData.availableFor.includes('monthly') && (
+                  <input
+                    type="number"
+                    placeholder="Monthly Rent (PKR/month)"
+                    required
+                    value={houseData.rentPrice}
+                    onChange={(e) => setHouseData({ ...houseData, rentPrice: e.target.value })}
+                    className="ah-input"
+                    style={{ marginBottom: '8px' }}
+                  />
+                )}
+                {houseData.availableFor.includes('yearly') && (
+                  <input
+                    type="number"
+                    placeholder="Yearly Total in PKR (Optional)"
+                    value={houseData.pricePerYear}
+                    onChange={(e) => setHouseData({ ...houseData, pricePerYear: e.target.value })}
+                    className="ah-input"
+                  />
+                )}
+              </div>
 
-                {splitRentPerPerson > 0 && (
-                  <div
-                    style={{
-                      marginTop: '10px',
-                      background: '#dcfce7',
-                      color: '#14532d',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                      lineHeight: '1.4',
-                    }}
-                  >
-                    💡 Auto Split Rent: PKR {splitRentPerPerson.toLocaleString()} / person
-                    per month ({houseData.totalBeds} roommates)
+              <div className="ah-grid-3" style={{ marginBottom: '14px' }}>
+                {['family', 'bachelors', 'both'].map((s) => {
+                  const active = houseData.suitableFor === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setHouseData({ ...houseData, suitableFor: s })}
+                      className="ah-pill-btn"
+                      style={{
+                        border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                        background: active ? '#eff6ff' : '#fff',
+                        color: active ? '#2563eb' : '#64748b',
+                      }}
+                    >
+                      {s === 'family' ? '👨‍👩‍👧‍👦 Family' : s === 'bachelors' ? '👤 Bachelors' : '🤝 Both'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                className="ah-box"
+                style={{
+                  background: houseData.isShared ? '#f0fdf4' : '#f8fafc',
+                  border: houseData.isShared ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
+                }}
+              >
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', color: '#0f172a', lineHeight: '1.4' }}>
+                  <input
+                    type="checkbox"
+                    checked={houseData.isShared}
+                    onChange={(e) =>
+                      setHouseData((prev) => ({
+                        ...prev,
+                        isShared: e.target.checked,
+                        suitableFor: e.target.checked && prev.suitableFor === 'family' ? 'bachelors' : prev.suitableFor,
+                      }))
+                    }
+                    style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  <Users size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>
+                    {lang === 'en'
+                      ? '🎓 Allow Shared Room / Hostel / Roommates (Split Rent)'
+                      : '🎓 مشترکہ کمرہ / ہاسٹل / روم میٹ (Split Rent) کی اجازت دیں'}
+                  </span>
+                </label>
+
+                {houseData.isShared && (
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #bbf7d0' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+                      Sharing Preference:
+                    </label>
+                    <div className="ah-grid-3" style={{ marginBottom: '12px' }}>
+                      {[
+                        { value: 'boys', label: '👨 Boys / Male' },
+                        { value: 'girls', label: '👩 Girls / Female' },
+                        { value: 'any', label: '🤝 Anyone' },
+                      ].map((g) => {
+                        const active = houseData.sharedGender === g.value;
+                        return (
+                          <button
+                            key={g.value}
+                            type="button"
+                            onClick={() => setHouseData({ ...houseData, sharedGender: g.value })}
+                            className="ah-pill-btn"
+                            style={{
+                              border: active ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                              background: active ? '#dcfce7' : '#fff',
+                              color: active ? '#15803d' : '#64748b',
+                            }}
+                          >
+                            {g.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block', marginBottom: '6px' }}>
+                      Split Rent Between (Total Persons):
+                    </label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="10"
+                      value={houseData.totalBeds}
+                      onChange={(e) => setHouseData({ ...houseData, totalBeds: e.target.value })}
+                      className="ah-input"
+                      style={{ borderColor: '#86efac' }}
+                    />
+
+                    {splitRentPerPerson > 0 && (
+                      <div style={{ marginTop: '10px', background: '#dcfce7', color: '#14532d', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', lineHeight: '1.4' }}>
+                        💡 Auto Split Rent: PKR {splitRentPerPerson.toLocaleString()} / person per month ({houseData.totalBeds} roommates)
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Live Location */}
           <button
@@ -715,30 +774,14 @@ const AddHouse = () => {
             onClick={handleLiveLocation}
             disabled={locating}
             style={{
-              width: '100%',
-              padding: '11px 12px',
-              marginBottom: '12px',
-              borderRadius: '8px',
-              border: '1.5px solid #2563eb',
-              background: '#eff6ff',
-              color: '#1d4ed8',
-              fontWeight: 'bold',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              minHeight: '42px',
-              textAlign: 'center',
+              width: '100%', padding: '11px 12px', marginBottom: '12px', borderRadius: '8px',
+              border: '1.5px solid #2563eb', background: '#eff6ff', color: '#1d4ed8',
+              fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '42px', textAlign: 'center',
             }}
           >
             <MapPin size={16} style={{ flexShrink: 0 }} />
-            <span>
-              {locating
-                ? 'Detecting Live Location...'
-                : '📍 Use My Live Location (Auto-Fill City & Address)'}
-            </span>
+            <span>{locating ? 'Detecting Live Location...' : '📍 Use My Live Location (Auto-Fill City & Address)'}</span>
           </button>
 
           {/* City & Address */}
@@ -753,7 +796,7 @@ const AddHouse = () => {
             />
             <input
               type="text"
-              placeholder="Address"
+              placeholder="Address / Sector / Phase"
               required
               value={houseData.address}
               onChange={(e) => setHouseData({ ...houseData, address: e.target.value })}
@@ -761,37 +804,31 @@ const AddHouse = () => {
             />
           </div>
 
-          {/* Bedrooms & Bathrooms */}
-          <div className="ah-grid-2">
-            <input
-              type="number"
-              placeholder="Bedrooms"
-              required
-              value={houseData.bedrooms}
-              onChange={(e) => setHouseData({ ...houseData, bedrooms: e.target.value })}
-              className="ah-input"
-            />
-            <input
-              type="number"
-              placeholder="Bathrooms"
-              required
-              value={houseData.bathrooms}
-              onChange={(e) => setHouseData({ ...houseData, bathrooms: e.target.value })}
-              className="ah-input"
-            />
-          </div>
+          {/* Bedrooms & Bathrooms (پلاٹ کے لیے ہائیڈ) */}
+          {!isPlotOrCommercial && (
+            <div className="ah-grid-2">
+              <input
+                type="number"
+                placeholder="Bedrooms"
+                required
+                value={houseData.bedrooms}
+                onChange={(e) => setHouseData({ ...houseData, bedrooms: e.target.value })}
+                className="ah-input"
+              />
+              <input
+                type="number"
+                placeholder="Bathrooms"
+                required
+                value={houseData.bathrooms}
+                onChange={(e) => setHouseData({ ...houseData, bathrooms: e.target.value })}
+                className="ah-input"
+              />
+            </div>
+          )}
 
           {/* Photos Upload */}
           <div style={{ marginBottom: '14px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: '#475569',
-                display: 'block',
-                marginBottom: '6px',
-              }}
-            >
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '6px' }}>
               Photos (Fast Cloud Upload):
             </label>
             <input
@@ -800,51 +837,19 @@ const AddHouse = () => {
               multiple
               onChange={handleMultipleImages}
               disabled={uploadProgress !== null}
-              style={{
-                padding: '10px',
-                border: '1.5px dashed #2563eb',
-                background: '#eff6ff',
-                width: '100%',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
+              style={{ padding: '10px', border: '1.5px dashed #2563eb', background: '#eff6ff', width: '100%', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
             />
 
             {houseData.images.length > 0 && (
               <div className="ah-images-grid">
                 {houseData.images.map((img, index) => (
                   <div key={index} style={{ position: 'relative' }}>
-                    <img
-                      src={img}
-                      alt={`Preview ${index}`}
-                      style={{
-                        width: '100%',
-                        height: '76px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        display: 'block',
-                      }}
-                    />
+                    <img src={img} alt={`Preview ${index}`} style={{ width: '100%', height: '76px', objectFit: 'cover', borderRadius: '8px', display: 'block' }} />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
                       aria-label="Remove image"
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        background: 'rgba(220, 38, 38, 0.9)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                      }}
+                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(220, 38, 38, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
                       <X size={13} />
                     </button>
@@ -855,20 +860,8 @@ const AddHouse = () => {
           </div>
 
           {/* Utilities */}
-          <div
-            className="ah-box"
-            style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}
-          >
-            <label
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: '#0f172a',
-                display: 'block',
-                marginBottom: '10px',
-                lineHeight: '1.4',
-              }}
-            >
+          <div className="ah-box" style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', display: 'block', marginBottom: '10px', lineHeight: '1.4' }}>
               ⚡ Utilities &amp; Facilities (سچائی بتائیں — یوزرز کا اعتماد بڑھتا ہے):
             </label>
 
@@ -888,20 +881,14 @@ const AddHouse = () => {
                     type="button"
                     onClick={() => toggleUtility(u.key)}
                     style={{
-                      padding: '10px 10px',
-                      minHeight: '40px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      textAlign: 'left',
+                      padding: '10px 10px', minHeight: '40px', borderRadius: '8px', cursor: 'pointer',
+                      fontSize: '13px', fontWeight: '600', textAlign: 'left',
                       border: active ? '2px solid #2563eb' : '1px solid #cbd5e1',
                       background: active ? '#eff6ff' : '#ffffff',
                       color: active ? '#1d4ed8' : '#475569',
                     }}
                   >
-                    {active ? '✅ ' : ''}
-                    {u.label}
+                    {active ? '✅ ' : ''}{u.label}
                   </button>
                 );
               })}
@@ -909,54 +896,23 @@ const AddHouse = () => {
 
             <input
               type="text"
-              placeholder="📍 Nearby University / Metro / Landmark (e.g. 5 min from FAST)"
+              placeholder="📍 Nearby University / Metro / Main Boulevard"
               value={houseData.nearLandmark}
-              onChange={(e) =>
-                setHouseData({ ...houseData, nearLandmark: e.target.value })
-              }
+              onChange={(e) => setHouseData({ ...houseData, nearLandmark: e.target.value })}
               className="ah-input"
             />
           </div>
 
           {/* Video Walkthrough */}
-          <div
-            className="ah-box"
-            style={{
-              background: '#fef2f2',
-              border: '1.5px dashed #f87171',
-              marginBottom: '16px',
-            }}
-          >
-            <label
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                color: '#991b1b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginBottom: '10px',
-                lineHeight: '1.4',
-              }}
-            >
+          <div className="ah-box" style={{ background: '#fef2f2', border: '1.5px dashed #f87171', marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', lineHeight: '1.4' }}>
               <Video size={18} color="#dc2626" style={{ flexShrink: 0 }} />
               <span>Property Video Walkthrough (Choose File OR Paste Video Link):</span>
             </label>
 
             {houseData.videoUrl ? (
-              <div
-                style={{
-                  marginTop: '10px',
-                  position: 'relative',
-                  background: '#000',
-                  borderRadius: '10px',
-                  padding: '10px',
-                }}
-              >
-                <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 8px' }}>
-                  Selected Video Preview:
-                </p>
-
+              <div style={{ marginTop: '10px', position: 'relative', background: '#000', borderRadius: '10px', padding: '10px' }}>
+                <p style={{ color: '#fff', fontSize: '12px', margin: '0 0 8px' }}>Selected Video Preview:</p>
                 {houseData.videoUrl.includes('youtu') ? (
                   <iframe
                     title="Property video preview"
@@ -965,38 +921,19 @@ const AddHouse = () => {
                       houseData.videoUrl.includes('youtu.be')
                         ? `https://www.youtube.com/embed/${houseData.videoUrl.split('/').pop().split('?')[0]}`
                         : houseData.videoUrl.includes('shorts')
-                          ? `https://www.youtube.com/embed/${houseData.videoUrl.split('shorts/')[1]?.split('?')[0]}`
-                          : `https://www.youtube.com/embed/${houseData.videoUrl.split('watch?v=')[1]?.split('&')[0]}`
+                        ? `https://www.youtube.com/embed/${houseData.videoUrl.split('shorts/')[1]?.split('?')[0]}`
+                        : `https://www.youtube.com/embed/${houseData.videoUrl.split('watch?v=')[1]?.split('&')[0]}`
                     }
                     className="ah-video-frame"
                   />
                 ) : (
-                  <video
-                    src={houseData.videoUrl}
-                    controls
-                    className="ah-video-frame"
-                  />
+                  <video src={houseData.videoUrl} controls className="ah-video-frame" />
                 )}
 
                 <button
                   type="button"
                   onClick={() => setHouseData({ ...houseData, videoUrl: '' })}
-                  style={{
-                    width: '100%',
-                    marginTop: '8px',
-                    padding: '10px',
-                    background: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 'bold',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                  }}
+                  style={{ width: '100%', marginTop: '8px', padding: '10px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >
                   <X size={15} /> Remove Video (ویڈیو ہٹائیں)
                 </button>
@@ -1008,29 +945,10 @@ const AddHouse = () => {
                   accept="video/*"
                   onChange={handleVideoUpload}
                   disabled={uploadProgress !== null}
-                  style={{
-                    padding: '10px',
-                    background: '#ffffff',
-                    width: '100%',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                  }}
+                  style={{ padding: '10px', background: '#ffffff', width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '14px' }}
                 />
 
-                <div
-                  style={{
-                    margin: '12px 0 8px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    color: '#475569',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    textAlign: 'center',
-                  }}
-                >
+                <div style={{ margin: '12px 0 8px', fontSize: '11px', fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
                   <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }} />
                   <span>OR PASTE VIDEO LINK (YouTube / Shorts)</span>
                   <span style={{ flex: 1, height: '1px', background: '#cbd5e1' }} />
@@ -1040,9 +958,7 @@ const AddHouse = () => {
                   type="text"
                   placeholder="https://youtu.be/... or ..."
                   value={houseData.videoUrl}
-                  onChange={(e) =>
-                    setHouseData({ ...houseData, videoUrl: e.target.value })
-                  }
+                  onChange={(e) => setHouseData({ ...houseData, videoUrl: e.target.value })}
                   className="ah-input"
                 />
               </div>
@@ -1051,32 +967,14 @@ const AddHouse = () => {
 
           {/* Description + AI */}
           <div className="ah-desc-header">
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>
-              Description:
-            </label>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Description:</label>
             <button
               type="button"
               onClick={handleAiDescription}
               disabled={aiGenerating}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
-                color: '#fff',
-                border: 'none',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'linear-gradient(135deg, #7c3aed, #2563eb)', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              {aiGenerating ? (
-                <Loader2 size={14} className="spin" />
-              ) : (
-                <Sparkles size={14} />
-              )}
+              {aiGenerating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
               {aiGenerating ? 'Writing...' : '✨ Write Description with AI'}
             </button>
           </div>
@@ -1086,9 +984,7 @@ const AddHouse = () => {
             rows="3"
             required
             value={houseData.description}
-            onChange={(e) =>
-              setHouseData({ ...houseData, description: e.target.value })
-            }
+            onChange={(e) => setHouseData({ ...houseData, description: e.target.value })}
             className="ah-input"
             style={{ marginBottom: '16px', resize: 'vertical' }}
           />
@@ -1097,8 +993,13 @@ const AddHouse = () => {
             type="submit"
             className="btn-primary ah-submit-btn"
             disabled={loading || uploadProgress !== null}
+            style={isSale ? { background: '#047857', borderColor: '#047857' } : {}}
           >
-            {loading ? 'Publishing...' : 'Publish Property to Cloud'}
+            {loading
+              ? 'Publishing...'
+              : isSale
+              ? 'Publish Property For Sale 🏷️'
+              : 'Publish Rental Property to Cloud 🏠'}
           </button>
         </form>
       </div>

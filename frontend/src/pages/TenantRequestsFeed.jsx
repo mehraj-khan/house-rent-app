@@ -20,12 +20,20 @@ const API_URL =
     ? 'http://localhost:5000'
     : 'https://house-rent-app-ten.vercel.app';
 
+const formatPKR = (amount) => {
+  const num = Number(amount) || 0;
+  if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Crore`;
+  if (num >= 100000) return `${(num / 100000).toFixed(1)} Lac`;
+  return num.toLocaleString();
+};
+
 const TenantRequestsFeed = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [requests, setRequests] = useState([]);
   const [cityFilter, setCityFilter] = useState('');
+  const [purposeFilter, setPurposeFilter] = useState('all'); // 'all' | 'rent' | 'sale'
   const [myHouses, setMyHouses] = useState([]);
   const [activeView, setActiveView] = useState('all'); // 'all' | 'mine'
   const [toggledIds, setToggledIds] = useState({});
@@ -76,7 +84,7 @@ const TenantRequestsFeed = () => {
         message: offerMsg,
       });
 
-      alert('Offer sent successfully to the tenant! 🏠📩');
+      alert('Offer sent successfully! 🏠📩');
       setSelectedRequest(null);
       setSelectedHouseId('');
       setOfferMsg('');
@@ -97,16 +105,21 @@ const TenantRequestsFeed = () => {
     return isMine ? sum + (r.offers?.length || 0) : sum;
   }, 0);
 
-  const visibleRequests =
-    activeView === 'mine'
-      ? requests.filter(
-          (r) => currentUserId && (r.tenant?._id || r.tenant) === currentUserId
-        )
-      : requests;
+  const visibleRequests = requests.filter((r) => {
+    if (activeView === 'mine') {
+      const isMine = currentUserId && (r.tenant?._id || r.tenant) === currentUserId;
+      if (!isMine) return false;
+    }
+    if (purposeFilter === 'sale') return r.purpose === 'sale';
+    if (purposeFilter === 'rent') return r.purpose !== 'sale';
+    return true;
+  });
 
   const toggleOffers = (reqId, currentlyOpen) => {
     setToggledIds((prev) => ({ ...prev, [reqId]: !currentlyOpen }));
   };
+
+  const selectedIsBuy = selectedRequest?.purpose === 'sale';
 
   return (
     <div
@@ -136,10 +149,10 @@ const TenantRequestsFeed = () => {
       >
         <div style={{ flex: '1 1 260px' }}>
           <h2 style={{ margin: 0, fontSize: 'clamp(18px, 3vw, 22px)' }}>
-            📢 Tenant Demands: &quot;Mujhe Ghar Chahiye&quot;
+            📢 Property Demands (Rent &amp; Buy)
           </h2>
           <p style={{ margin: '6px 0 0', fontSize: '13px', opacity: 0.85 }}>
-            Tenants post their budgets &amp; areas. Landlords send matching houses directly!
+            Tenants &amp; Buyers post their budgets &amp; areas. Property owners send matching offers directly!
           </p>
         </div>
 
@@ -154,7 +167,7 @@ const TenantRequestsFeed = () => {
             padding: '10px 16px',
           }}
         >
-          <PlusCircle size={18} /> Post Your Demand (مجھے گھر چاہیے)
+          <PlusCircle size={18} /> Post Your Demand (ڈیمانڈ پوسٹ کریں)
         </button>
       </div>
 
@@ -174,7 +187,7 @@ const TenantRequestsFeed = () => {
             type="button"
             onClick={() => setActiveView('all')}
             style={{
-              padding: '9px 16px',
+              padding: '9px 14px',
               borderRadius: '8px',
               border: 'none',
               cursor: 'pointer',
@@ -192,7 +205,7 @@ const TenantRequestsFeed = () => {
               type="button"
               onClick={() => setActiveView('mine')}
               style={{
-                padding: '9px 16px',
+                padding: '9px 14px',
                 borderRadius: '8px',
                 border: 'none',
                 cursor: 'pointer',
@@ -205,7 +218,7 @@ const TenantRequestsFeed = () => {
                 gap: '6px',
               }}
             >
-              📩 My Requests &amp; Offers ({myRequestsCount})
+              📩 My Requests ({myRequestsCount})
               {myTotalOffersCount > 0 && (
                 <span
                   style={{
@@ -221,6 +234,31 @@ const TenantRequestsFeed = () => {
               )}
             </button>
           )}
+
+          {/* Rent vs Buy Demand Filter */}
+          {[
+            { key: 'all', label: 'All Types' },
+            { key: 'rent', label: '🏢 Rent' },
+            { key: 'sale', label: '🏷️ Buy' },
+          ].map((pf) => (
+            <button
+              key={pf.key}
+              type="button"
+              onClick={() => setPurposeFilter(pf.key)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '12px',
+                border: purposeFilter === pf.key ? '2px solid #0f172a' : '1px solid #cbd5e1',
+                background: purposeFilter === pf.key ? '#0f172a' : '#fff',
+                color: purposeFilter === pf.key ? '#fff' : '#475569',
+              }}
+            >
+              {pf.label}
+            </button>
+          ))}
         </div>
 
         <input
@@ -246,8 +284,8 @@ const TenantRequestsFeed = () => {
           <div className="house-card" style={{ padding: '36px 20px', textAlign: 'center' }}>
             <p style={{ color: '#64748b' }}>
               {activeView === 'mine'
-                ? "You haven't posted any house demand yet."
-                : 'No active tenant demands found.'}
+                ? "You haven't posted any demand yet."
+                : 'No active demands found.'}
             </p>
             <button
               className="btn-primary"
@@ -259,13 +297,13 @@ const TenantRequestsFeed = () => {
           </div>
         ) : (
           visibleRequests.map((req) => {
+            const isBuyDemand = req.purpose === 'sale';
             const reqTenantId = req.tenant?._id || req.tenant;
             const isMyRequest = Boolean(
               currentUserId && reqTenantId && currentUserId === reqTenantId
             );
             const allOffers = req.offers || [];
 
-            // 🔒 پرائیویسی: صرف وہی آفرز دکھیں جو یا میری ڈیمانڈ پر آئیں یا میں نے خود بھیجیں
             const visibleOffers = allOffers.filter((offer) => {
               const offerLandlordId = offer.landlord?._id || offer.landlord;
               return (
@@ -285,7 +323,11 @@ const TenantRequestsFeed = () => {
                 className="house-card"
                 style={{
                   padding: '20px',
-                  borderLeft: isMyRequest ? '5px solid #16a34a' : '5px solid #2563eb',
+                  borderLeft: isBuyDemand
+                    ? '5px solid #047857'
+                    : isMyRequest
+                    ? '5px solid #16a34a'
+                    : '5px solid #2563eb',
                 }}
               >
                 <div
@@ -298,23 +340,59 @@ const TenantRequestsFeed = () => {
                   }}
                 >
                   <div style={{ flex: '1 1 250px' }}>
-                    <h3 style={{ margin: '0 0 6px', fontSize: '18px', color: '#0f172a' }}>
-                      Need {req.bedrooms} Bed in {req.area}, {req.city}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          padding: '3px 9px',
+                          borderRadius: '999px',
+                          background: isBuyDemand ? '#ecfdf5' : '#eff6ff',
+                          color: isBuyDemand ? '#047857' : '#1d4ed8',
+                          border: isBuyDemand ? '1px solid #a7f3d0' : '1px solid #bfdbfe',
+                        }}
+                      >
+                        {isBuyDemand ? '🏷️ BUY DEMAND' : '🏢 RENT DEMAND'}
+                      </span>
+
+                      {req.propertyType && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            padding: '3px 9px',
+                            borderRadius: '999px',
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {req.propertyType}
+                        </span>
+                      )}
+
                       {isMyRequest && (
                         <span
                           style={{
-                            marginLeft: '8px',
                             fontSize: '11px',
                             background: '#dcfce7',
                             color: '#166534',
-                            padding: '2px 8px',
+                            padding: '3px 9px',
                             borderRadius: '999px',
+                            fontWeight: 'bold',
                           }}
                         >
                           Your Demand
                         </span>
                       )}
+                    </div>
+
+                    <h3 style={{ margin: '0 0 6px', fontSize: '18px', color: '#0f172a' }}>
+                      {isBuyDemand
+                        ? `Want to Buy ${req.areaSize ? `${req.areaSize} ${req.areaUnit || 'Marla'} ` : ''}${req.propertyType || 'Property'} in ${req.area}, ${req.city}`
+                        : `Need ${req.bedrooms} Bed in ${req.area}, ${req.city}`}
                     </h3>
+
                     <div
                       style={{
                         fontSize: '13px',
@@ -326,33 +404,61 @@ const TenantRequestsFeed = () => {
                       }}
                     >
                       <span>
-                        👤 Tenant: <b>{req.tenant?.name || 'User'}</b>
+                        👤 {isBuyDemand ? 'Buyer' : 'Tenant'}: <b>{req.tenant?.name || 'User'}</b>
                       </span>
-                      <span>
-                        👨‍👩‍👧‍👦 Type:{' '}
-                        <b>
-                          {req.tenantType === 'family' ? 'Family' : 'Bachelors'} (
-                          {req.familyMembers} Persons)
-                        </b>
-                      </span>
-                      <span>
-                        📅 Move-in:{' '}
-                        <b>
-                          {req.moveInDate
-                            ? new Date(req.moveInDate).toLocaleDateString()
-                            : 'Flexible'}
-                        </b>
-                      </span>
+
+                      {isBuyDemand ? (
+                        <>
+                          {req.bedrooms > 0 && (
+                            <span>
+                              🛏️ Beds: <b>{req.bedrooms}+</b>
+                            </span>
+                          )}
+                          <span>
+                            📅 Target Deal:{' '}
+                            <b>
+                              {req.moveInDate
+                                ? new Date(req.moveInDate).toLocaleDateString()
+                                : 'Urgent / Flexible'}
+                            </b>
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span>
+                            👨‍👩‍👧‍👦 Type:{' '}
+                            <b>
+                              {req.tenantType === 'family' ? 'Family' : 'Bachelors'} (
+                              {req.familyMembers} Persons)
+                            </b>
+                          </span>
+                          <span>
+                            📅 Move-in:{' '}
+                            <b>
+                              {req.moveInDate
+                                ? new Date(req.moveInDate).toLocaleDateString()
+                                : 'Flexible'}
+                            </b>
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div>
                     <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>
-                      Budget:
+                      {isBuyDemand ? 'Buying Budget:' : 'Monthly Budget:'}
                     </span>
-                    <span style={{ fontSize: '17px', fontWeight: 'bold', color: '#16a34a' }}>
-                      PKR {req.budgetMin?.toLocaleString()} -{' '}
-                      {req.budgetMax?.toLocaleString()}
+                    <span
+                      style={{
+                        fontSize: '17px',
+                        fontWeight: 'bold',
+                        color: isBuyDemand ? '#047857' : '#16a34a',
+                      }}
+                    >
+                      {isBuyDemand
+                        ? `PKR ${formatPKR(req.budgetMin)} - ${formatPKR(req.budgetMax)}`
+                        : `PKR ${req.budgetMin?.toLocaleString()} - ${req.budgetMax?.toLocaleString()}`}
                     </span>
                   </div>
                 </div>
@@ -372,7 +478,7 @@ const TenantRequestsFeed = () => {
                   </p>
                 )}
 
-                {/* آفرز بٹن + لینڈلارڈ ایکشن */}
+                {/* آفرز بٹن + آفر بھیجیں بٹن */}
                 <div
                   style={{
                     display: 'flex',
@@ -405,7 +511,7 @@ const TenantRequestsFeed = () => {
                       gap: '6px',
                     }}
                   >
-                    📩 {allOffers.length} Landlord Offers Received
+                    📩 {allOffers.length} Owner Offers Received
                     {allOffers.length > 0 &&
                       (isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />)}
                   </button>
@@ -421,10 +527,10 @@ const TenantRequestsFeed = () => {
                           return;
                         }
                         setSelectedRequest(req);
-                        setOfferedRent(req.budgetMax);
+                        setOfferedRent(req.budgetMax || '');
                       }}
                       style={{
-                        background: '#16a34a',
+                        background: isBuyDemand ? '#047857' : '#16a34a',
                         color: 'white',
                         border: 'none',
                         padding: '8px 16px',
@@ -437,12 +543,12 @@ const TenantRequestsFeed = () => {
                         fontSize: '13px',
                       }}
                     >
-                      <Send size={15} /> Send Property Offer (مکان پیش کریں)
+                      <Send size={15} /> Send Property Offer (پراپرٹی پیش کریں)
                     </button>
                   )}
                 </div>
 
-                {/* 🔒 پرائیویٹ آفرز سیکشن */}
+                {/* پرائیویٹ آفرز سیکشن */}
                 {isExpanded && (
                   <div
                     style={{
@@ -468,14 +574,14 @@ const TenantRequestsFeed = () => {
                         <Lock size={15} />
                         <span>
                           {allOffers.length > 0
-                            ? `${allOffers.length} offer(s) sent — only visible to the tenant who posted this demand.`
-                            : 'No landlord offers received yet.'}
+                            ? `${allOffers.length} offer(s) sent — only visible to the user who posted this demand.`
+                            : 'No owner offers received yet.'}
                         </span>
                       </div>
                     ) : (
                       <>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a' }}>
-                          🏠 {isMyRequest ? 'Matching Houses Offered to You' : 'Your Sent Offer'} (
+                          🏠 {isMyRequest ? 'Matching Properties Offered to You' : 'Your Sent Offer'} (
                           {visibleOffers.length}):
                         </div>
 
@@ -512,7 +618,7 @@ const TenantRequestsFeed = () => {
                                 {houseObj?.images?.[0] ? (
                                   <img
                                     src={houseObj.images[0]}
-                                    alt={houseObj.title || 'House'}
+                                    alt={houseObj.title || 'Property'}
                                     style={{
                                       width: '76px',
                                       height: '64px',
@@ -540,14 +646,8 @@ const TenantRequestsFeed = () => {
                                 )}
 
                                 <div style={{ minWidth: 0 }}>
-                                  <div
-                                    style={{
-                                      fontWeight: 'bold',
-                                      fontSize: '15px',
-                                      color: '#0f172a',
-                                    }}
-                                  >
-                                    {houseObj?.title || 'Offered House'}
+                                  <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#0f172a' }}>
+                                    {houseObj?.title || 'Offered Property'}
                                   </div>
                                   {(houseObj?.address || houseObj?.city) && (
                                     <div style={{ fontSize: '12px', color: '#64748b' }}>
@@ -560,21 +660,16 @@ const TenantRequestsFeed = () => {
                                     style={{
                                       fontSize: '14px',
                                       fontWeight: 'bold',
-                                      color: '#16a34a',
+                                      color: isBuyDemand ? '#047857' : '#16a34a',
                                       marginTop: '3px',
                                     }}
                                   >
-                                    Offered Rent: PKR{' '}
-                                    {offer.offeredRent?.toLocaleString()} / mo
+                                    {isBuyDemand
+                                      ? `Offered Sale Price: PKR ${formatPKR(offer.offeredRent)}`
+                                      : `Offered Rent: PKR ${offer.offeredRent?.toLocaleString()} / mo`}
                                   </div>
-                                  <div
-                                    style={{
-                                      fontSize: '12px',
-                                      color: '#475569',
-                                      marginTop: '3px',
-                                    }}
-                                  >
-                                    👤 Owner: <b>{landlordObj?.name || 'Landlord'}</b>
+                                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '3px' }}>
+                                    👤 Owner: <b>{landlordObj?.name || 'Owner'}</b>
                                     {landlordObj?.phone ? ` • ${landlordObj.phone}` : ''}
                                   </div>
                                   {offer.message && (
@@ -658,7 +753,7 @@ const TenantRequestsFeed = () => {
                                       fontSize: '12px',
                                     }}
                                   >
-                                    <Eye size={14} /> Open House
+                                    <Eye size={14} /> Open Property
                                   </button>
                                 )}
                               </div>
@@ -675,7 +770,7 @@ const TenantRequestsFeed = () => {
         )}
       </div>
 
-      {/* مکان کی آفر بھیجنے کا پاپ اپ ماڈل */}
+      {/* پراپرٹی آفر بھیجنے کا پاپ اپ ماڈل */}
       {selectedRequest && (
         <div className="modal-overlay" style={{ zIndex: 999999, padding: '12px' }}>
           <div
@@ -683,14 +778,20 @@ const TenantRequestsFeed = () => {
             style={{ maxWidth: '520px', width: '100%', boxSizing: 'border-box' }}
           >
             <h3 style={{ marginBottom: '8px' }}>
-              Send Offer to {selectedRequest.tenant?.name} 🏠
+              Send {selectedIsBuy ? 'Sale' : 'Rental'} Offer to {selectedRequest.tenant?.name} 🏠
             </h3>
             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '15px' }}>
               Looking for:{' '}
               <b>
-                {selectedRequest.bedrooms} Bed in {selectedRequest.area}
+                {selectedIsBuy
+                  ? `${selectedRequest.areaSize || ''} ${selectedRequest.areaUnit || ''} ${selectedRequest.propertyType || 'Property'} in ${selectedRequest.area}`
+                  : `${selectedRequest.bedrooms} Bed in ${selectedRequest.area}`}
               </b>{' '}
-              (Budget: PKR {selectedRequest.budgetMax?.toLocaleString()})
+              (Budget: PKR{' '}
+              {selectedIsBuy
+                ? formatPKR(selectedRequest.budgetMax)
+                : selectedRequest.budgetMax?.toLocaleString()}
+              )
             </p>
 
             <form
@@ -715,10 +816,11 @@ const TenantRequestsFeed = () => {
                     fontSize: '15px',
                   }}
                 >
-                  <option value="">-- Choose from your listed houses --</option>
+                  <option value="">-- Choose from your listed properties --</option>
                   {myHouses.map((h) => (
                     <option key={h._id} value={h._id}>
-                      {h.title} ({h.city} - PKR {h.rentPrice}/mo)
+                      {h.purpose === 'sale' ? '🏷️ [For Sale]' : '🏢 [For Rent]'} {h.title} ({h.city} - PKR{' '}
+                      {h.purpose === 'sale' ? formatPKR(h.salePrice) : `${h.rentPrice || 0}/mo`})
                     </option>
                   ))}
                 </select>
@@ -726,12 +828,14 @@ const TenantRequestsFeed = () => {
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                  Your Offered Rent (PKR / month):
+                  {selectedIsBuy
+                    ? 'Your Offered Sale Price (PKR):'
+                    : 'Your Offered Rent (PKR / month):'}
                 </label>
                 <input
                   type="number"
                   required
-                  placeholder="e.g. 38000"
+                  placeholder={selectedIsBuy ? 'e.g. 24000000' : 'e.g. 38000'}
                   value={offeredRent}
                   onChange={(e) => setOfferedRent(e.target.value)}
                   style={{
@@ -744,15 +848,24 @@ const TenantRequestsFeed = () => {
                     fontSize: '15px',
                   }}
                 />
+                {selectedIsBuy && Number(offeredRent) > 0 && (
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#047857', marginTop: '4px' }}>
+                    💡 {formatPKR(offeredRent)}
+                  </div>
+                )}
               </div>
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                  Message to Tenant:
+                  Message to {selectedIsBuy ? 'Buyer' : 'Tenant'}:
                 </label>
                 <textarea
                   rows="2"
-                  placeholder="e.g. I have a 2-bed upper portion available..."
+                  placeholder={
+                    selectedIsBuy
+                      ? 'e.g. Brand new 5 Marla house with registry available for visit...'
+                      : 'e.g. I have a 2-bed upper portion available...'
+                  }
                   value={offerMsg}
                   onChange={(e) => setOfferMsg(e.target.value)}
                   style={{

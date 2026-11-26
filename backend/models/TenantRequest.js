@@ -18,6 +18,12 @@ const tenantRequestSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     status: { type: String, enum: ['active', 'closed'], default: 'active' },
 
+    purpose: { type: String, enum: ['rent', 'sale'], default: 'rent' },
+    propertyType: { type: String, default: 'house' },
+    areaSize: { type: String, default: '' },
+    areaUnit: { type: String, default: 'Marla' },
+
+
     // 📩 مالکان کی طرف سے آنے والی آفرز
     offers: [
       {

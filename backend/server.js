@@ -15,6 +15,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import offerRoutes from './routes/offerRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import tenantRequestRoutes from './routes/tenantRequestRoutes.js'; // 👈 نئی لائن
+import adRoutes from './routes/adRoutes.js';
 
 
 
@@ -68,7 +69,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/tenant-requests', tenantRequestRoutes); // 👈 نئی لائن
-
+app.use('/api/ads', adRoutes);
 
 
 

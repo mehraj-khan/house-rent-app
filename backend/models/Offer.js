@@ -5,7 +5,7 @@ const offerSchema = new mongoose.Schema(
     house: { type: mongoose.Schema.Types.ObjectId, ref: 'House', required: true },
     tenant: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     landlord: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    rentType: { type: String, enum: ['daily', 'monthly', 'yearly'], default: 'monthly' },
+    rentType: { type: String, enum: ['daily', 'monthly', 'yearly', 'sale'], default: 'monthly' },
     checkIn: { type: Date, required: true },
     checkOut: { type: Date, required: true },
     durationCount: { type: Number, default: 1 },
